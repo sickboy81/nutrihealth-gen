@@ -1,0 +1,7 @@
+{
+  "name": "NutriHealth Gen",
+  "description": "A nutrition web app to analyze meals, explore healthy recipes, and track nutritional progress. It helps users achieve their health goals with AI-powered insights.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
