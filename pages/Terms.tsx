@@ -1,11 +1,58 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Card from '../components/Card';
 
 const Terms = () => {
+    useEffect(() => {
+        // Update document title and meta tags for SEO
+        document.title = 'Termos de Uso - NutriHealth Gen | Política de Uso do Aplicativo';
+        
+        // Update or create meta description
+        let metaDescription = document.querySelector('meta[name="description"]');
+        if (!metaDescription) {
+            metaDescription = document.createElement('meta');
+            metaDescription.setAttribute('name', 'description');
+            document.head.appendChild(metaDescription);
+        }
+        metaDescription.setAttribute('content', 'Leia os Termos de Uso do NutriHealth Gen. Conheça as condições de uso, responsabilidades e direitos ao utilizar nosso aplicativo de nutrição inteligente com IA.');
+        
+        // Add structured data for SEO
+        const structuredData = {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "Termos de Uso - NutriHealth Gen",
+            "description": "Termos e condições de uso do aplicativo NutriHealth Gen",
+            "url": window.location.href,
+            "datePublished": "2024-01-15",
+            "dateModified": new Date().toISOString().split('T')[0],
+            "inLanguage": "pt-BR",
+            "isPartOf": {
+                "@type": "WebSite",
+                "name": "NutriHealth Gen",
+                "url": window.location.origin
+            }
+        };
+        
+        let scriptTag = document.querySelector('script[type="application/ld+json"][data-terms]');
+        if (!scriptTag) {
+            scriptTag = document.createElement('script');
+            scriptTag.setAttribute('type', 'application/ld+json');
+            scriptTag.setAttribute('data-terms', 'true');
+            document.head.appendChild(scriptTag);
+        }
+        scriptTag.textContent = JSON.stringify(structuredData);
+    }, []);
+
     return (
-        <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
-            <Card className="p-4 sm:p-6">
-                <h1 className="text-2xl font-bold mb-6 text-gray-800">Termos de Uso</h1>
+        <div className="min-h-screen bg-gray-50 py-8">
+            <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
+                <article itemScope itemType="https://schema.org/Article">
+                    <Card className="p-4 sm:p-6">
+                        <header>
+                            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900" itemProp="headline">Termos de Uso</h1>
+                            <p className="text-sm text-gray-500 mb-6">
+                                Última atualização: <time itemProp="dateModified" dateTime={new Date().toISOString()}>{new Date().toLocaleDateString('pt-BR')}</time>
+                            </p>
+                        </header>
                 
                 <div className="space-y-6 text-gray-700 leading-relaxed">
                     <div>
@@ -116,12 +163,18 @@ const Terms = () => {
                         </p>
                     </section>
 
-                    <div className="border-t border-gray-200 pt-4 mt-6">
-                        <p className="text-sm text-gray-500 text-center">
-                            © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
-                        </p>
+                        <footer className="border-t border-gray-200 pt-4 mt-6">
+                            <p className="text-sm text-gray-500 text-center">
+                                © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
+                            </p>
+                            <div className="mt-4 text-center space-x-4">
+                                <a href="/#/privacy" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Política de Privacidade</a>
+                                <span className="text-gray-300">|</span>
+                                <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
+                            </div>
+                        </footer>
                     </div>
-                </div>
+                </article>
             </Card>
         </div>
     );

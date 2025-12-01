@@ -23,6 +23,64 @@ const LandingPage = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [visibleSection, setVisibleSection] = useState('');
     
+    // SEO: Update meta tags dynamically based on language
+    useEffect(() => {
+        // Update document title and meta tags for SEO
+        const titles: { [key: string]: string } = {
+            pt: 'NutriHealth Gen - Nutrição Inteligente com IA | Escaneie Alimentos e Transforme Sua Saúde',
+            en: 'NutriHealth Gen - AI-Powered Nutrition | Scan Foods & Transform Your Health',
+            es: 'NutriHealth Gen - Nutrición Inteligente con IA | Escanea Alimentos y Transforma Tu Salud',
+            de: 'NutriHealth Gen - KI-gestützte Ernährung | Scannen Sie Lebensmittel und transformieren Sie Ihre Gesundheit',
+            fr: 'NutriHealth Gen - Nutrition Intelligente avec IA | Scannez les Aliments et Transformez Votre Santé',
+            ru: 'NutriHealth Gen - Умное питание с ИИ | Сканируйте продукты и измените свое здоровье'
+        };
+        
+        const descriptions: { [key: string]: string } = {
+            pt: 'NutriScan: Escaneie qualquer comida com sua câmera e descubra nutrientes instantaneamente. Assistente IA de nutrição 24/7. Planos alimentares personalizados. Comece grátis!',
+            en: 'NutriScan: Scan any food with your camera and discover nutrients instantly. 24/7 AI nutrition assistant. Personalized meal plans. Start free!',
+            es: 'NutriScan: Escanea cualquier comida con tu cámara y descubre nutrientes al instante. Asistente de nutrición IA 24/7. Planes de comidas personalizados. ¡Comienza gratis!',
+            de: 'NutriScan: Scannen Sie jedes Lebensmittel mit Ihrer Kamera und entdecken Sie sofort Nährstoffe. 24/7 KI-Ernährungsassistent. Personalisierte Ernährungspläne. Kostenlos starten!',
+            fr: 'NutriScan: Scannez n\'importe quel aliment avec votre caméra et découvrez les nutriments instantanément. Assistant nutrition IA 24/7. Plans de repas personnalisés. Commencez gratuitement!',
+            ru: 'NutriScan: Сканируйте любую еду камерой и мгновенно узнавайте о питательных веществах. Ассистент по питанию с ИИ 24/7. Персонализированные планы питания. Начните бесплатно!'
+        };
+        
+        document.title = titles[language] || titles.en;
+        
+        // Update meta description
+        let metaDescription = document.querySelector('meta[name="description"]');
+        if (!metaDescription) {
+            metaDescription = document.createElement('meta');
+            metaDescription.setAttribute('name', 'description');
+            document.head.appendChild(metaDescription);
+        }
+        metaDescription.setAttribute('content', descriptions[language] || descriptions.en);
+        
+        // Update Open Graph tags
+        const updateOGTag = (property: string, content: string) => {
+            let tag = document.querySelector(`meta[property="${property}"]`);
+            if (!tag) {
+                tag = document.createElement('meta');
+                tag.setAttribute('property', property);
+                document.head.appendChild(tag);
+            }
+            tag.setAttribute('content', content);
+        };
+        
+        updateOGTag('og:title', titles[language] || titles.en);
+        updateOGTag('og:description', descriptions[language] || descriptions.en);
+        updateOGTag('og:locale', language === 'pt' ? 'pt_BR' : language === 'es' ? 'es_ES' : language === 'en' ? 'en_US' : 'pt_BR');
+        
+        // Update canonical URL with language
+        let canonical = document.querySelector('link[rel="canonical"]');
+        if (!canonical) {
+            canonical = document.createElement('link');
+            canonical.setAttribute('rel', 'canonical');
+            document.head.appendChild(canonical);
+        }
+        const baseUrl = 'https://nutrihealthgen.com/';
+        canonical.setAttribute('href', language === 'pt' ? baseUrl : `${baseUrl}?lang=${language}`);
+    }, [language]);
+    
     // Auto-detect language and currency based on browser locale and timezone
     useEffect(() => {
         const browserLang = navigator.language.toLowerCase();
@@ -157,22 +215,41 @@ const LandingPage = () => {
         }
     };
 
-    // Structured Data for SEO (JSON-LD)
+    // Structured Data for SEO (JSON-LD) - Enhanced
     const structuredData = {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "NutriHealth Gen",
         "applicationCategory": "HealthApplication",
         "operatingSystem": "Web, iOS, Android",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": currency === 'BRL' ? 'BRL' : 'USD'
-        },
+        "offers": [
+            {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": currency === 'BRL' ? 'BRL' : 'USD',
+                "name": "Free Plan"
+            },
+            {
+                "@type": "Offer",
+                "price": currency === 'BRL' ? "29" : "9.99",
+                "priceCurrency": currency === 'BRL' ? 'BRL' : 'USD',
+                "name": "Monthly Plan",
+                "billingIncrement": "P1M"
+            },
+            {
+                "@type": "Offer",
+                "price": currency === 'BRL' ? "290" : "99.99",
+                "priceCurrency": currency === 'BRL' ? 'BRL' : 'USD',
+                "name": "Annual Plan",
+                "billingIncrement": "P1Y"
+            }
+        ],
         "aggregateRating": {
             "@type": "AggregateRating",
             "ratingValue": "4.9",
-            "ratingCount": "10000"
+            "ratingCount": "10000",
+            "bestRating": "5",
+            "worstRating": "1"
         },
         "description": t('landing.heroDescription'),
         "featureList": [
@@ -180,8 +257,16 @@ const LandingPage = () => {
             t('landing.assistantTitle'),
             t('landing.planTitle'),
             "Lista de Compras Automática",
-            "Acompanhamento de Calorias e Macros"
-        ]
+            "Acompanhamento de Calorias e Macros",
+            "Análise de Imagens com IA",
+            "Receitas Personalizadas",
+            "Acompanhamento de Progresso"
+        ],
+        "screenshot": "https://nutrihealthgen.com/screenshot.jpg",
+        "softwareVersion": "1.0.0",
+        "releaseNotes": "Versão inicial com NutriScan e Assistente IA",
+        "inLanguage": language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : language === 'en' ? 'en-US' : 'pt-BR',
+        "url": "https://nutrihealthgen.com"
     };
 
     const organizationData = {
@@ -189,17 +274,49 @@ const LandingPage = () => {
         "@type": "Organization",
         "name": "NutriHealth Gen",
         "url": "https://nutrihealthgen.com",
-        "logo": "https://nutrihealthgen.com/logo.png",
-        "description": "Plataforma de nutrição inteligente com IA para análise de alimentos e planos alimentares personalizados",
-        "contactPoint": {
-            "@type": "ContactPoint",
-            "contactType": "customer service",
-            "email": "contato@nutrihealthgen.com"
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://nutrihealthgen.com/logo.png",
+            "width": 512,
+            "height": 512
         },
+        "description": "Plataforma de nutrição inteligente com IA para análise de alimentos e planos alimentares personalizados",
+        "foundingDate": "2024",
+        "contactPoint": [
+            {
+                "@type": "ContactPoint",
+                "contactType": "customer service",
+                "email": "contato@nutrihealthgen.com",
+                "availableLanguage": ["Portuguese", "English", "Spanish"]
+            },
+            {
+                "@type": "ContactPoint",
+                "contactType": "technical support",
+                "email": "suporte@nutrihealthgen.com"
+            }
+        ],
         "sameAs": [
             "https://www.facebook.com/nutrihealthgen",
             "https://www.instagram.com/nutrihealthgen",
             "https://twitter.com/nutrihealthgen"
+        ],
+        "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "BR"
+        }
+    };
+    
+    // Breadcrumb structured data
+    const breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://nutrihealthgen.com/"
+            }
         ]
     };
 
@@ -253,6 +370,9 @@ const LandingPage = () => {
             </script>
             <script type="application/ld+json">
                 {JSON.stringify(faqData)}
+            </script>
+            <script type="application/ld+json">
+                {JSON.stringify(breadcrumbData)}
             </script>
             
             <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden" itemScope itemType="https://schema.org/WebPage">
@@ -920,7 +1040,7 @@ const LandingPage = () => {
             </section>
 
             {/* Footer */}
-            <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
+            <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800" itemScope itemType="https://schema.org/WPFooter">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                         <div>
@@ -950,9 +1070,9 @@ const LandingPage = () => {
                         <div>
                             <h3 className="text-white font-bold mb-4">Legal</h3>
                             <ul className="space-y-2 text-sm">
-                                <li><a href="#" className="hover:text-white transition-colors">Privacidade</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Termos</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
+                                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacidade</Link></li>
+                                <li><Link to="/terms" className="hover:text-white transition-colors">Termos</Link></li>
+                                <li><Link to="/contact" className="hover:text-white transition-colors">Contato</Link></li>
                             </ul>
                         </div>
                     </div>

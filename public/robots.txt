@@ -1,8 +1,16 @@
+# Robots.txt for NutriHealth Gen
+# Allow all major search engines
+
 User-agent: *
 Allow: /
 Allow: /terms
 Allow: /privacy
 Allow: /contact
+Allow: /#/terms
+Allow: /#/privacy
+Allow: /#/contact
+
+# Disallow private/protected pages
 Disallow: /dashboard
 Disallow: /nutriscan
 Disallow: /recipes
@@ -14,9 +22,28 @@ Disallow: /about
 Disallow: /onboarding
 Disallow: /login
 
-# Sitemap
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+Allow: /terms
+Allow: /privacy
+Allow: /contact
+
+User-agent: Bingbot
+Allow: /
+Allow: /terms
+Allow: /privacy
+Allow: /contact
+
+User-agent: Slurp
+Allow: /
+Allow: /terms
+Allow: /privacy
+Allow: /contact
+
+# Sitemap location
 Sitemap: https://nutrihealthgen.com/sitemap.xml
 
-# Crawl-delay
+# Crawl delay (optional, helps with server load)
 Crawl-delay: 1
 
