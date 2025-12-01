@@ -50,10 +50,10 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+// Temporarily disable StrictMode to avoid React DevTools conflicts
+// StrictMode can cause issues with lazy loading and React DevTools
 root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
 );

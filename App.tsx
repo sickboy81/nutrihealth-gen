@@ -7,21 +7,44 @@ import { I18nProvider } from './contexts/I18nContext';
 import { UserDataProvider } from './contexts/UserDataContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-// Lazy load pages for code splitting
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const Login = lazy(() => import('./pages/Login'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const NutriScan = lazy(() => import('./pages/NutriScan'));
-const Recipes = lazy(() => import('./pages/Recipes'));
-const HealthPlan = lazy(() => import('./pages/HealthPlan'));
-const Chat = lazy(() => import('./pages/Chat'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Settings = lazy(() => import('./pages/Settings'));
-const About = lazy(() => import('./pages/About'));
-const Terms = lazy(() => import('./pages/Terms'));
-const Privacy = lazy(() => import('./pages/Privacy'));
-const Contact = lazy(() => import('./pages/Contact'));
+// Lazy load pages for code splitting with error handling
+const lazyLoad = (importFunc: () => Promise<{ default: React.ComponentType<any> }>) => {
+  return lazy(() => importFunc().catch((error) => {
+    console.error('Error loading component:', error);
+    // Return a fallback component
+    return {
+      default: () => (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Erro ao carregar</h1>
+            <p className="text-gray-600 mb-4">Por favor, recarregue a página.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            >
+              Recarregar
+            </button>
+          </div>
+        </div>
+      )
+    };
+  }));
+};
+
+const LandingPage = lazyLoad(() => import('./pages/LandingPage'));
+const Login = lazyLoad(() => import('./pages/Login'));
+const Onboarding = lazyLoad(() => import('./pages/Onboarding'));
+const Dashboard = lazyLoad(() => import('./pages/Dashboard'));
+const NutriScan = lazyLoad(() => import('./pages/NutriScan'));
+const Recipes = lazyLoad(() => import('./pages/Recipes'));
+const HealthPlan = lazyLoad(() => import('./pages/HealthPlan'));
+const Chat = lazyLoad(() => import('./pages/Chat'));
+const Profile = lazyLoad(() => import('./pages/Profile'));
+const Settings = lazyLoad(() => import('./pages/Settings'));
+const About = lazyLoad(() => import('./pages/About'));
+const Terms = lazyLoad(() => import('./pages/Terms'));
+const Privacy = lazyLoad(() => import('./pages/Privacy'));
+const Contact = lazyLoad(() => import('./pages/Contact'));
 
 // Loading fallback component
 const PageLoader = () => (
