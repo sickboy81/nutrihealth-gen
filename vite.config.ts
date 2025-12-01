@@ -46,6 +46,43 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
       }
-    }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            // Separate vendor chunks for better caching
+            if (id.includes('node_modules')) {
+              // React and React DOM
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                return 'react-vendor';
+              }
+              // Chart library
+              if (id.includes('recharts')) {
+                return 'charts';
+              }
+              // PDF generation
+              if (id.includes('jspdf') || id.includes('html2canvas')) {
+                return 'pdf';
+              }
+              // Gemini AI SDK
+              if (id.includes('@google/genai')) {
+                return 'gemini';
+              }
+              // Supabase
+              if (id.includes('@supabase')) {
+                return 'supabase';
+              }
+              // Other vendor libraries
+              return 'vendor';
+            }
+          },
+        },
+      },
+      // Enable source maps for production debugging (optional)
+      sourcemap: false,
+      // Optimize chunk size
+      chunkSizeWarningLimit: 600,
+    },
   };
 });
