@@ -53,9 +53,13 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id) => {
             // Separate vendor chunks for better caching
             if (id.includes('node_modules')) {
-              // React and React DOM
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                return 'react-vendor';
+              // React and React DOM - must be together to avoid initialization issues
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'react-core';
+              }
+              // React Router separately
+              if (id.includes('react-router')) {
+                return 'react-router';
               }
               // Chart library
               if (id.includes('recharts')) {
