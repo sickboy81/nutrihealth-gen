@@ -50,14 +50,27 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// Suppress React DevTools errors in production
+// Disable React DevTools in production
+if (typeof window !== 'undefined' && import.meta.env.PROD) {
+  // @ts-ignore
+  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+    isDisabled: true,
+    supportsFiber: true,
+    inject: () => {},
+    onCommitFiberRoot: () => {},
+    onCommitFiberUnmount: () => {},
+  };
+}
+
+// Suppress console errors related to React DevTools
 if (typeof window !== 'undefined') {
   const originalError = console.error;
   console.error = (...args: any[]) => {
     // Filter out React DevTools errors
     if (
       args[0]?.includes?.('Cannot set properties of undefined') ||
-      args[0]?.includes?.('Activity')
+      args[0]?.includes?.('Activity') ||
+      args[0]?.includes?.('__REACT_DEVTOOLS')
     ) {
       return;
     }
@@ -65,12 +78,8 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// Delay render slightly to ensure all chunks are loaded
-// This helps prevent React DevTools initialization issues
-setTimeout(() => {
-  root.render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  );
-}, 0);
+root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
