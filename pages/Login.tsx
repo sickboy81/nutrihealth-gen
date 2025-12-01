@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserData } from '../contexts/UserDataContext';
 import Card from '../components/Card';
 import Spinner from '../components/Spinner';
 import { useI18n } from '../contexts/I18nContext';
 
 const Login = () => {
     const { login, register, user } = useAuth();
+    const { userProfile } = useUserData();
     const navigate = useNavigate();
     const { t } = useI18n();
     const [isLogin, setIsLogin] = useState(true);
@@ -19,11 +21,24 @@ const Login = () => {
         password: ''
     });
 
+    // Check if user has completed onboarding (has profile data)
+    const hasCompletedOnboarding = () => {
+        return userProfile && 
+               userProfile.age > 0 && 
+               userProfile.height > 0 && 
+               userProfile.weight > 0;
+    };
+
     React.useEffect(() => {
         if (user) {
-            navigate('/');
+            // Check if user needs to complete onboarding
+            if (!hasCompletedOnboarding()) {
+                navigate('/onboarding');
+            } else {
+                navigate('/dashboard');
+            }
         }
-    }, [user, navigate]);
+    }, [user, userProfile, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,6 +62,15 @@ const Login = () => {
                     } else {
                         setError(err);
                     }
+                } else {
+                    // Login successful - wait a bit for user state to update, then redirect
+                    setTimeout(() => {
+                        if (!hasCompletedOnboarding()) {
+                            navigate('/onboarding');
+                        } else {
+                            navigate('/dashboard');
+                        }
+                    }, 500);
                 }
             } else {
                 console.log('Attempting registration...');
@@ -65,7 +89,7 @@ const Login = () => {
                     // Registration successful - user is auto-logged in by AuthContext
                     console.log('Registration successful!');
                     setError('Conta criada com sucesso! Redirecionando...');
-                    // Navigate to onboarding after a short delay to show success message
+                    // New users always go to onboarding
                     setTimeout(() => {
                         navigate('/onboarding');
                     }, 1500);

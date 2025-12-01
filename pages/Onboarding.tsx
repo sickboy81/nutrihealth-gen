@@ -39,7 +39,8 @@ const Onboarding = () => {
     };
 
     const handleSkip = () => {
-        navigate('/');
+        // Skip onboarding and go to dashboard
+        navigate('/dashboard');
     };
 
     const handleFinish = () => {
@@ -56,8 +57,8 @@ const Onboarding = () => {
             activityLevel: formData.activityLevel
         });
 
-        // Redirect to dashboard
-        navigate('/');
+        // Redirect to dashboard after completing onboarding
+        navigate('/dashboard');
     };
 
     const updateField = (field: string, value: any) => {
