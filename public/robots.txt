@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /terms
+Allow: /privacy
+Allow: /contact
+Disallow: /dashboard
+Disallow: /nutriscan
+Disallow: /recipes
+Disallow: /health-plan
+Disallow: /chat
+Disallow: /profile
+Disallow: /settings
+Disallow: /about
+Disallow: /onboarding
+Disallow: /login
+
+# Sitemap
+Sitemap: https://nutrihealthgen.com/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+

@@ -2,7 +2,46 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { WeeklyPlan, MealAnalysis, Recipe, Meal, ShoppingItem, ChallengeTask } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Get API key from environment - Vite exposes env vars through import.meta.env
+// The vite.config.ts defines process.env.API_KEY, but we need to access it correctly
+// Try multiple ways to get the API key
+const getApiKey = (): string | null => {
+    // Try import.meta.env first (Vite standard)
+    if (import.meta.env.VITE_GEMINI_API_KEY && import.meta.env.VITE_GEMINI_API_KEY !== 'PLACEHOLDER_API_KEY') {
+        return import.meta.env.VITE_GEMINI_API_KEY;
+    }
+    
+    // Try the defined process.env.API_KEY from vite.config.ts
+    // @ts-ignore - process.env is defined by vite.config.ts
+    if (typeof process !== 'undefined' && process.env?.API_KEY && process.env.API_KEY !== 'PLACEHOLDER_API_KEY') {
+        return process.env.API_KEY;
+    }
+    
+    // Try import.meta.env.API_KEY (if defined in vite.config.ts)
+    // @ts-ignore
+    if (import.meta.env?.API_KEY && import.meta.env.API_KEY !== 'PLACEHOLDER_API_KEY') {
+        return import.meta.env.API_KEY;
+    }
+    
+    return null;
+};
+
+const apiKey = getApiKey();
+
+if (!apiKey) {
+    console.error('⚠️ GEMINI_API_KEY não configurada!');
+    console.error('Por favor, configure a chave da API no arquivo .env.local:');
+    console.error('GEMINI_API_KEY=sua_chave_aqui');
+}
+
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null as any;
+
+// Helper function to check API key before making requests
+const checkApiKey = () => {
+    if (!apiKey || !ai) {
+        throw new Error('API Key não configurada. Por favor, configure GEMINI_API_KEY no arquivo .env.local com uma chave válida do Google Gemini.');
+    }
+};
 
 const languageMap: { [key: string]: string } = {
   pt: 'Portuguese',
@@ -22,6 +61,8 @@ const fileToBase64 = (file: File): Promise<string> =>
   });
 
 export const analyzeMeal = async (imageFile: File, language: string): Promise<MealAnalysis> => {
+  checkApiKey();
+  
   const base64Image = await fileToBase64(imageFile);
   const languageName = languageMap[language as keyof typeof languageMap] || 'English';
   
@@ -114,6 +155,8 @@ export const analyzeMeal = async (imageFile: File, language: string): Promise<Me
 };
 
 export const generateHealthPlan = async (goal: string, restrictions: string, calories: number, language: string, diet: string): Promise<WeeklyPlan> => {
+    checkApiKey();
+    
     const languageName = languageMap[language as keyof typeof languageMap] || 'English';
     const prompt = `Create a 7-day healthy meal plan for a person whose primary goal is "${goal}".
     Dietary Preference (Strict): ${diet}.
@@ -230,6 +273,8 @@ export const regenerateMeal = async (
 
 
 export const generateRecipeFromIngredients = async (ingredients: string, language: string): Promise<Recipe> => {
+    checkApiKey();
+    
     const languageName = languageMap[language as keyof typeof languageMap] || 'English';
     const prompt = `Create a recipe using mainly these ingredients: "${ingredients}". You can add other common ingredients if needed.
     The recipe should be healthy and creative.
@@ -282,6 +327,11 @@ export const generateRecipeFromIngredients = async (ingredients: string, languag
 export const generateImageForRecipe = async (imageQuery: string): Promise<string> => {
     let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'; // Fallback
     try {
+        if (!apiKey || !ai) {
+            console.warn('API Key não configurada, usando imagem padrão');
+            return imageUrl;
+        }
+        
         const imageResponse = await ai.models.generateImages({
             model: 'imagen-3.0-generate-001',
             prompt: imageQuery,
@@ -304,6 +354,8 @@ export const generateImageForRecipe = async (imageQuery: string): Promise<string
 
 
 export const sendNutritionChatMessage = async (history: {role: 'user' | 'model', text: string}[], message: string, language: string, assistantName: string): Promise<string> => {
+    checkApiKey();
+    
     const languageName = languageMap[language as keyof typeof languageMap] || 'English';
     
     const chat = ai.chats.create({
@@ -326,7 +378,9 @@ export const sendNutritionChatMessage = async (history: {role: 'user' | 'model',
 };
 
 export const generateShoppingListFromPlan = async (plan: WeeklyPlan, language: string): Promise<ShoppingItem[]> => {
-     const languageName = languageMap[language as keyof typeof languageMap] || 'English';
+    checkApiKey();
+    
+    const languageName = languageMap[language as keyof typeof languageMap] || 'English';
      // Extract all ingredients string
      const allIngredients: string[] = [];
      Object.values(plan).forEach(day => {
@@ -380,6 +434,8 @@ export const generateShoppingListFromPlan = async (plan: WeeklyPlan, language: s
 };
 
 export const generate30DayChallenge = async (goal: string, language: string): Promise<ChallengeTask[]> => {
+    checkApiKey();
+    
     const languageName = languageMap[language as keyof typeof languageMap] || 'English';
     const prompt = `Create a 30-day health and wellness challenge for a user whose primary goal is "${goal}".
     Provide a JSON array containing exactly 30 tasks, one for each day.

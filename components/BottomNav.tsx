@@ -14,7 +14,7 @@ const BottomNav = () => {
   const { assistantName } = useUserData();
   
   const navItems = [
-    { path: '/', label: t('nav.dashboard'), icon: ChartBarIcon },
+    { path: '/dashboard', label: t('nav.dashboard'), icon: ChartBarIcon },
     { path: '/nutriscan', label: t('nav.nutriscan'), icon: CameraIcon },
     { path: '/health-plan', label: t('nav.plan'), icon: CalendarIcon },
     { path: '/recipes', label: t('nav.recipes'), icon: BookOpenIcon },

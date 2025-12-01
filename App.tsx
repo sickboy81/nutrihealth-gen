@@ -5,10 +5,15 @@ import Recipes from './pages/Recipes';
 import Dashboard from './pages/Dashboard';
 import HealthPlan from './pages/HealthPlan';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import About from './pages/About';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
 import LandingPage from './pages/LandingPage';
 import Onboarding from './pages/Onboarding';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Contact from './pages/Contact';
 import BottomNav from './components/BottomNav';
 import Header from './components/Header';
 import { I18nProvider } from './contexts/I18nContext';
@@ -31,13 +36,16 @@ const AppContent = () => {
   const { user } = useAuth();
   const location = useLocation();
 
-  // Hide header/bottom nav on landing page, login, and onboarding
-  const hideNav = ['/', '/login', '/onboarding'].includes(location.pathname);
+  // Hide header/bottom nav on landing page, login, onboarding, and public pages
+  const hideNav = ['/', '/login', '/onboarding', '/terms', '/privacy', '/contact'].includes(location.pathname);
+  
+  // Hide bottom nav on settings pages and public pages
+  const hideBottomNav = ['/settings', '/profile', '/about', '/terms', '/privacy', '/contact'].includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       {user && !hideNav && <Header />}
-      <main className={user && !hideNav ? "pt-20 pb-24" : ""}>
+      <main className={user && !hideNav ? (hideBottomNav ? "pt-20 pb-6" : "pt-20 pb-24") : ""}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
@@ -47,10 +55,15 @@ const AppContent = () => {
           <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
           <Route path="/health-plan" element={<ProtectedRoute><HealthPlan /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
         </Routes>
       </main>
-      {user && !hideNav && <BottomNav />}
+      {user && !hideNav && !hideBottomNav && <BottomNav />}
     </div>
   );
 }
