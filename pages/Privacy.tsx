@@ -49,13 +49,12 @@ const Privacy = () => {
                     <Card className="p-4 sm:p-6">
                         <header>
                             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900" itemProp="headline">Política de Privacidade</h1>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Última atualização: <time itemProp="dateModified" dateTime={new Date().toISOString()}>{new Date().toLocaleDateString('pt-BR')}</time>
+                            </p>
+                        </header>
                 
-                <div className="space-y-6 text-gray-700 leading-relaxed">
-                    <div>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Última atualização: {new Date().toLocaleDateString('pt-BR')}
-                        </p>
-                    </div>
+                        <div className="space-y-6 text-gray-700 leading-relaxed">
 
                     <section>
                         <h2 className="text-xl font-semibold text-gray-900 mb-3">1. Introdução</h2>
@@ -180,19 +179,20 @@ const Privacy = () => {
                         </ul>
                     </section>
 
-                        <footer className="border-t border-gray-200 pt-4 mt-6">
-                            <p className="text-sm text-gray-500 text-center">
-                                © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
-                            </p>
-                            <div className="mt-4 text-center space-x-4">
-                                <a href="/#/terms" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Termos de Uso</a>
-                                <span className="text-gray-300">|</span>
-                                <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
-                            </div>
-                        </footer>
-                    </div>
-                </article>
-            </Card>
+                            <footer className="border-t border-gray-200 pt-4 mt-6">
+                                <p className="text-sm text-gray-500 text-center">
+                                    © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
+                                </p>
+                                <div className="mt-4 text-center space-x-4">
+                                    <a href="/#/terms" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Termos de Uso</a>
+                                    <span className="text-gray-300">|</span>
+                                    <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
+                                </div>
+                            </footer>
+                        </div>
+                    </article>
+                </Card>
+            </div>
         </div>
     );
 };

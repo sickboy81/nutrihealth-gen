@@ -54,14 +54,8 @@ const Terms = () => {
                             </p>
                         </header>
                 
-                <div className="space-y-6 text-gray-700 leading-relaxed">
-                    <div>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Última atualização: {new Date().toLocaleDateString('pt-BR')}
-                        </p>
-                    </div>
-
-                    <section>
+                        <div className="space-y-6 text-gray-700 leading-relaxed">
+                            <section>
                         <h2 className="text-xl font-semibold text-gray-900 mb-3">1. Aceitação dos Termos</h2>
                         <p className="mb-3">
                             Ao acessar e usar o NutriHealth Gen, você concorda em cumprir e estar vinculado aos seguintes termos e condições de uso. Se você não concorda com alguma parte destes termos, não deve usar nosso serviço.
@@ -163,19 +157,20 @@ const Terms = () => {
                         </p>
                     </section>
 
-                        <footer className="border-t border-gray-200 pt-4 mt-6">
-                            <p className="text-sm text-gray-500 text-center">
-                                © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
-                            </p>
-                            <div className="mt-4 text-center space-x-4">
-                                <a href="/#/privacy" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Política de Privacidade</a>
-                                <span className="text-gray-300">|</span>
-                                <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
-                            </div>
-                        </footer>
-                    </div>
-                </article>
-            </Card>
+                            <footer className="border-t border-gray-200 pt-4 mt-6">
+                                <p className="text-sm text-gray-500 text-center">
+                                    © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
+                                </p>
+                                <div className="mt-4 text-center space-x-4">
+                                    <a href="/#/privacy" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Política de Privacidade</a>
+                                    <span className="text-gray-300">|</span>
+                                    <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
+                                </div>
+                            </footer>
+                        </div>
+                    </article>
+                </Card>
+            </div>
         </div>
     );
 };
