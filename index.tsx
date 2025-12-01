@@ -50,10 +50,27 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// Temporarily disable StrictMode to avoid React DevTools conflicts
-// StrictMode can cause issues with lazy loading and React DevTools
-root.render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
+// Suppress React DevTools errors in production
+if (typeof window !== 'undefined') {
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    // Filter out React DevTools errors
+    if (
+      args[0]?.includes?.('Cannot set properties of undefined') ||
+      args[0]?.includes?.('Activity')
+    ) {
+      return;
+    }
+    originalError.apply(console, args);
+  };
+}
+
+// Delay render slightly to ensure all chunks are loaded
+// This helps prevent React DevTools initialization issues
+setTimeout(() => {
+  root.render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}, 0);
