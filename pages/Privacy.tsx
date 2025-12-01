@@ -45,8 +45,8 @@ const Privacy = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
-                <article itemScope itemType="https://schema.org/Article">
-                    <Card className="p-4 sm:p-6">
+                <Card className="p-4 sm:p-6">
+                    <article itemScope itemType="https://schema.org/Article">
                         <header>
                             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900" itemProp="headline">Política de Privacidade</h1>
                             <p className="text-sm text-gray-500 mb-4">
@@ -179,16 +179,16 @@ const Privacy = () => {
                         </ul>
                     </section>
 
-                            <footer className="border-t border-gray-200 pt-4 mt-6">
-                                <p className="text-sm text-gray-500 text-center">
-                                    © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
-                                </p>
-                                <div className="mt-4 text-center space-x-4">
-                                    <a href="/#/terms" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Termos de Uso</a>
-                                    <span className="text-gray-300">|</span>
-                                    <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
-                                </div>
-                            </footer>
+                        <footer className="border-t border-gray-200 pt-4 mt-6">
+                            <p className="text-sm text-gray-500 text-center">
+                                © {new Date().getFullYear()} NutriHealth Gen. Todos os direitos reservados.
+                            </p>
+                            <div className="mt-4 text-center space-x-4">
+                                <a href="/#/terms" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Termos de Uso</a>
+                                <span className="text-gray-300">|</span>
+                                <a href="/#/contact" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">Contato</a>
+                            </div>
+                        </footer>
                         </div>
                     </article>
                 </Card>
