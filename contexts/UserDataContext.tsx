@@ -206,14 +206,17 @@ export const UserDataProvider = ({ children }: React.PropsWithChildren<{}>) => {
                 // Enhanced check for broken images (empty string, null, known bad domains)
                 const isBroken = !recipe.image || recipe.image.trim() === '' || BROKEN_IMAGE_DOMAINS.some(domain => recipe.image.includes(domain));
                 const missingTags = !recipe.tags;
+                
+                // Always verify and update image to ensure it matches the recipe
+                const correctImage = getRecipeImageUrl(recipe.name, recipe.type, recipe.image);
+                // Force update if image is broken, uses source.unsplash.com, or doesn't match the recipe
+                const imageNeedsUpdate = isBroken || recipe.image.includes('source.unsplash.com') || recipe.image !== correctImage;
 
-                if (isBroken || missingTags) {
+                if (isBroken || missingTags || imageNeedsUpdate) {
                     hasChanges = true;
                     let newRecipe = { ...recipe };
-                    if (isBroken) {
-                        // Use the helper function to get a better image based on recipe name and type
-                        newRecipe.image = getRecipeImageUrl(recipe.name, recipe.type, recipe.image);
-                    }
+                    // Always update image to ensure it's correct
+                    newRecipe.image = correctImage;
                     if (missingTags) {
                         const mockRecipe = MOCK_RECIPES.find(r => r.id === recipe.id);
                         newRecipe.tags = mockRecipe ? mockRecipe.tags : [];

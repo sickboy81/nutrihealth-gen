@@ -1,11 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Card from '../components/Card';
 import type { Recipe, RecipeType } from '../types';
 import { SearchIcon } from '../components/icons/SearchIcon';
 import { XIcon } from '../components/icons/XIcon';
 import { useI18n } from '../contexts/I18nContext';
 import { generateRecipeFromIngredients, generateImageForRecipe } from '../services/geminiService';
+import { getRecipeImageUrl } from '../utils/imageHelper';
 import Spinner from '../components/Spinner';
 import { BookmarkIcon } from '../components/icons/BookmarkIcon';
 import { FilterIcon } from '../components/icons/FilterIcon';
@@ -54,6 +55,7 @@ const Badge: React.FC<BadgeProps> = ({ children, color = 'gray' }) => {
 const RecipeModal = ({ recipe, onClose, isSaved, onSaveToggle, updateRecipeImage }: { recipe: Recipe; onClose: () => void; isSaved: boolean; onSaveToggle: () => void; updateRecipeImage: (id: number, url: string) => void }) => {
     const { t } = useI18n();
     const [isRegenerating, setIsRegenerating] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     const handleRegenerateImage = async () => {
         setIsRegenerating(true);
@@ -76,7 +78,20 @@ const RecipeModal = ({ recipe, onClose, isSaved, onSaveToggle, updateRecipeImage
                 
                 {/* Modal Header Image */}
                 <div className="relative h-56 sm:h-72 flex-shrink-0 group">
-                    <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
+                    <img 
+                        src={recipe.image} 
+                        alt={recipe.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            if (!imageError) {
+                                setImageError(true);
+                                const target = e.target as HTMLImageElement;
+                                const newImage = getRecipeImageUrl(recipe.name, recipe.type);
+                                target.src = newImage;
+                                updateRecipeImage(recipe.id, newImage);
+                            }
+                        }}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     
                     <button 
@@ -189,7 +204,18 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isSaved, isWeekly, onTo
       >
         {/* Image Section */}
         <div className="relative h-48 overflow-hidden">
-            <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img 
+                src={recipe.image} 
+                alt={recipe.name} 
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => {
+                    // If image fails to load, update it using the helper
+                    const target = e.target as HTMLImageElement;
+                    const newImage = getRecipeImageUrl(recipe.name, recipe.type);
+                    target.src = newImage;
+                    updateRecipeImage(recipe.id, newImage);
+                }}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60"></div>
             
             {/* Floating Save Button */}
