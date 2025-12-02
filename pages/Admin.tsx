@@ -544,6 +544,37 @@ const Admin = () => {
                                         />
                                     </div>
 
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            URL da Imagem
+                                        </label>
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={selectedRecipe?.image || recipeForm.image}
+                                                onChange={(e) => setRecipeForm({ ...recipeForm, image: e.target.value })}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                                placeholder="https://images.unsplash.com/photo-... (deixe em branco para gerar automaticamente)"
+                                            />
+                                            {(selectedRecipe?.image || recipeForm.image) && (
+                                                <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                                                    <img 
+                                                        src={selectedRecipe?.image || recipeForm.image} 
+                                                        alt="Preview da imagem"
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.src = 'https://via.placeholder.com/800x600?text=Imagem+Inválida';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <p className="text-xs text-gray-500">
+                                                Deixe em branco para gerar automaticamente. Cole uma URL de imagem válida.
+                                            </p>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
