@@ -293,6 +293,21 @@ export const UserDataProvider = ({ children }: React.PropsWithChildren<{}>) => {
                     if (cloudData.goals) setDailyGoals(cloudData.goals);
                     if (cloudData.preferences) setPreferences(cloudData.preferences);
                     if (cloudData.gamification) setGamification(cloudData.gamification);
+                    if (cloudData.recipes) setRecipes(cloudData.recipes);
+                    if (cloudData.savedRecipes) setSavedRecipes(cloudData.savedRecipes);
+                    if (cloudData.lastGeneratedPlan) setLastGeneratedPlan(cloudData.lastGeneratedPlan);
+                    if (cloudData.savedPlans) setSavedPlans(cloudData.savedPlans);
+                    if (cloudData.calorieHistory) setCalorieHistory(cloudData.calorieHistory);
+                    if (cloudData.goalsHistory) setGoalsHistory(cloudData.goalsHistory);
+                    if (cloudData.fastingState) setFastingState(cloudData.fastingState);
+                    if (cloudData.chatHistory) setChatHistory(cloudData.chatHistory);
+                    if (cloudData.shoppingList) setShoppingListState(cloudData.shoppingList);
+                    if (cloudData.activityLog) setActivityLog(cloudData.activityLog);
+                    if (cloudData.assistantName) setAssistantName(cloudData.assistantName);
+                    if (cloudData.moodHistory) setMoodHistory(cloudData.moodHistory);
+                    if (cloudData.weightHistory) setWeightHistory(cloudData.weightHistory);
+                    if (cloudData.challenge) setChallenge(cloudData.challenge);
+                    if (cloudData.sleepHistory) setSleepHistory(cloudData.sleepHistory);
                 }
             };
             fetchUserData();
