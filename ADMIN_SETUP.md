@@ -16,6 +16,13 @@ Este guia explica como configurar e usar o sistema administrativo completo do Nu
 4. Cole no SQL Editor e execute o script completo
 5. Aguarde a confirmação de que todas as tabelas e funções foram criadas
 
+### ✅ Verificar se foi criado corretamente
+
+Após executar o script, execute o arquivo `supabase_check_functions.sql` para verificar se tudo foi criado corretamente:
+- Tabelas: `admin_users`, `banned_users`, `admin_logs`
+- Funções: `get_all_users`, `ban_user`, `unban_user`, `add_admin`, `remove_admin`, `get_system_stats`, `is_admin`
+- Políticas RLS habilitadas
+
 ### O que o script cria:
 
 - ✅ Tabela `admin_users` - Armazena usuários administradores
