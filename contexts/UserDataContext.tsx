@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { supabase } from '../services/supabase';
 import type { DailyGoal, MealAnalysis, WeeklyPlan, GoalsHistoryItem, DayPlan, Meal, SavedPlan, Recipe, CalorieRecord, FastingState, ChatMessage, ShoppingList, ActivityRecord, ShoppingItem, UserProfile, NutrientGoal, GamificationState, MoodRecord, WeightRecord, MoodType, Achievement, ChallengeState, ChallengeTask, AppPreferences, SleepRecord, SleepQuality } from '../types';
 import { MOCK_DAILY_GOALS, MOCK_CALORIE_HISTORY, MOCK_FREQUENT_FOODS, MOCK_RECIPES, MOCK_USER_PROFILE, MOCK_WEIGHT_HISTORY, ACHIEVEMENTS_LIST } from '../constants';
+import { getRecipeImageUrl } from '../utils/imageHelper';
 
 interface UserDataContextType {
     dailyGoals: DailyGoal;
@@ -210,8 +211,8 @@ export const UserDataProvider = ({ children }: React.PropsWithChildren<{}>) => {
                     hasChanges = true;
                     let newRecipe = { ...recipe };
                     if (isBroken) {
-                        const fallbackIndex = recipe.id % FALLBACK_IMAGES.length;
-                        newRecipe.image = FALLBACK_IMAGES[fallbackIndex];
+                        // Use the helper function to get a better image based on recipe name and type
+                        newRecipe.image = getRecipeImageUrl(recipe.name, recipe.type, recipe.image);
                     }
                     if (missingTags) {
                         const mockRecipe = MOCK_RECIPES.find(r => r.id === recipe.id);

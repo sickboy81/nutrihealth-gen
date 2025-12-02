@@ -9,7 +9,7 @@ export const MOCK_RECIPES: Recipe[] = [
     calories: 450,
     difficulty: 'Fácil',
     type: 'Salada',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop',
     ingredients: ['200g de peito de frango', '1 xícara de quinoa cozida', 'Mix de folhas verdes', 'Tomate cereja', 'Pepino', 'Molho de limão e ervas'],
     steps: ['Grelhe o frango até dourar.', 'Em uma tigela, misture a quinoa, as folhas, o tomate e o pepino.', 'Fatie o frango e adicione à salada.', 'Regue com o molho e sirva.'],
     tags: ['High-Protein']
@@ -81,7 +81,7 @@ export const MOCK_RECIPES: Recipe[] = [
     calories: 480,
     difficulty: 'Médio',
     type: 'Prato Principal',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1574920173270-2b1fe7cdfd4a?q=80&w=800&auto=format&fit=crop',
     ingredients: ['100g de atum fresco em cubos', '1/2 xícara de arroz gohan ou integral', 'Abacate fatiado', 'Pepino', 'Manga', 'Gergelim e Shoyu Light'],
     steps: ['Monte o bowl com o arroz na base.', 'Disponha o atum, abacate, pepino e manga por cima.', 'Finalize com gergelim e shoyu.'],
     tags: ['Pescetarian', 'High-Protein']
@@ -333,7 +333,7 @@ export const MOCK_RECIPES: Recipe[] = [
     calories: 500,
     difficulty: 'Difícil',
     type: 'Prato Principal',
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a3a2750?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1467003909585-2f8a7270028d?q=80&w=800&auto=format&fit=crop',
     ingredients: ['Filé de tilápia', 'Camarões limpos', 'Molho de tomate', 'Leite de coco', 'Pimentões'],
     steps: ['Grelhe o peixe.', 'Faça um molho com os camarões, leite de coco e temperos.', 'Sirva o molho sobre o peixe.'],
     tags: ['High-Protein', 'Pescetarian']
@@ -549,7 +549,7 @@ export const MOCK_RECIPES: Recipe[] = [
     calories: 320,
     difficulty: 'Fácil',
     type: 'Salada',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=800&auto=format&fit=crop',
     ingredients: ['1 lata de atum', '1 xícara de feijão branco', 'Cebola roxa', 'Azeite e limão', 'Salsinha'],
     steps: ['Misture o atum com o feijão.', 'Adicione cebola e salsinha.', 'Tempere com azeite e limão.'],
     tags: ['High-Protein', 'Gluten-Free']
