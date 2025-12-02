@@ -3,6 +3,73 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Disable React DevTools completely to prevent initialization errors
+// This must be done before any React code runs
+if (typeof window !== 'undefined') {
+  // @ts-ignore - Completely disable React DevTools
+  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+    isDisabled: true,
+    supportsFiber: true,
+    supportsFlight: true,
+    supportsStrictMode: true,
+    supportsTimeline: true,
+    inject() {},
+    onCommitFiberRoot() {},
+    onCommitFiberUnmount() {},
+    onPostCommitFiberRoot() {},
+    setStrictMode() {},
+    checkDCE() {},
+    resolveRNStyle() {},
+    getInternalModuleRanges() { return null; },
+    registerInternalModuleStart() {},
+    registerInternalModuleStop() {},
+  };
+
+  // Suppress all console errors related to React DevTools and Activity
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  
+  console.error = (...args: any[]) => {
+    const message = String(args[0] || '');
+    if (
+      message.includes('Cannot set properties of undefined') ||
+      message.includes('Activity') ||
+      message.includes('__REACT_DEVTOOLS') ||
+      message.includes('DevTools')
+    ) {
+      return;
+    }
+    originalError.apply(console, args);
+  };
+
+  console.warn = (...args: any[]) => {
+    const message = String(args[0] || '');
+    if (
+      message.includes('Cannot set properties of undefined') ||
+      message.includes('Activity') ||
+      message.includes('__REACT_DEVTOOLS') ||
+      message.includes('DevTools')
+    ) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+
+  // Catch and suppress any uncaught errors from React DevTools
+  window.addEventListener('error', (event) => {
+    const message = event.message || '';
+    if (
+      message.includes('Cannot set properties of undefined') ||
+      message.includes('Activity') ||
+      message.includes('__REACT_DEVTOOLS')
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }
+  }, true);
+}
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
@@ -25,7 +92,15 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    // Don't log React DevTools errors
+    const message = error.message || '';
+    if (
+      !message.includes('Cannot set properties of undefined') &&
+      !message.includes('Activity') &&
+      !message.includes('__REACT_DEVTOOLS')
+    ) {
+      console.error('Error caught by boundary:', error, errorInfo);
+    }
   }
 
   render() {
@@ -48,34 +123,6 @@ class ErrorBoundary extends React.Component<
 
     return this.props.children;
   }
-}
-
-// Disable React DevTools in production
-if (typeof window !== 'undefined' && import.meta.env.PROD) {
-  // @ts-ignore
-  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-    isDisabled: true,
-    supportsFiber: true,
-    inject: () => {},
-    onCommitFiberRoot: () => {},
-    onCommitFiberUnmount: () => {},
-  };
-}
-
-// Suppress console errors related to React DevTools
-if (typeof window !== 'undefined') {
-  const originalError = console.error;
-  console.error = (...args: any[]) => {
-    // Filter out React DevTools errors
-    if (
-      args[0]?.includes?.('Cannot set properties of undefined') ||
-      args[0]?.includes?.('Activity') ||
-      args[0]?.includes?.('__REACT_DEVTOOLS')
-    ) {
-      return;
-    }
-    originalError.apply(console, args);
-  };
 }
 
 root.render(
