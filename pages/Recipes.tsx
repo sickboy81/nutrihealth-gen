@@ -256,7 +256,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isSaved, isWeekly, onTo
 
 const Recipes = () => {
   const { t, language } = useI18n();
-  const { recipes, savedRecipes, toggleSaveRecipe, addRecipe, updateRecipeImage, userProfile } = useUserData();
+  const { recipes, savedRecipes, toggleSaveRecipe, addRecipe, updateRecipeImage, userProfile, lastGeneratedPlan, savedPlans } = useUserData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [difficulty, setDifficulty] = useState('All');
@@ -269,9 +269,67 @@ const Recipes = () => {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [showOnlySaved, setShowOnlySaved] = useState(false);
+  const [dietWeek, setDietWeek] = useState(1); // Week of the diet plan
   
-  // Get Current Week for rotation logic
-  const currentWeek = useMemo(() => getWeekNumber(new Date()), []);
+  // Get Current Week for rotation logic (calendar week)
+  const calendarWeek = useMemo(() => getWeekNumber(new Date()), []);
+  
+  // Organize saved plans by week number
+  const plansByWeek = useMemo(() => {
+    const sorted = [...savedPlans].sort((a, b) => a.timestamp - b.timestamp);
+    const weeks: { [week: number]: any } = {};
+    sorted.forEach((plan, index) => {
+      weeks[index + 1] = plan.plan;
+    });
+    // Add current plan as the latest week
+    if (lastGeneratedPlan) {
+      const weekNumber = sorted.length + 1;
+      weeks[weekNumber] = lastGeneratedPlan;
+    }
+    return weeks;
+  }, [savedPlans, lastGeneratedPlan]);
+
+  const totalDietWeeks = useMemo(() => {
+    const savedCount = savedPlans.length;
+    const hasCurrentPlan = lastGeneratedPlan && !savedPlans.some(p => JSON.stringify(p.plan) === JSON.stringify(lastGeneratedPlan));
+    return Math.max(savedCount + (hasCurrentPlan ? 1 : 0), lastGeneratedPlan ? 1 : 0);
+  }, [savedPlans.length, lastGeneratedPlan]);
+
+  // Get recipes from the selected diet week
+  const weekPlanRecipes = useMemo(() => {
+    const weekPlan = plansByWeek[dietWeek] || (dietWeek === totalDietWeeks && lastGeneratedPlan ? lastGeneratedPlan : null);
+    if (!weekPlan) return [];
+    
+    const weekRecipes: Recipe[] = [];
+    const weekDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+    
+    weekDays.forEach(day => {
+      const dayPlan = weekPlan[day];
+      if (dayPlan) {
+        // Convert meals to recipes
+        ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
+          const meal = dayPlan[mealType];
+          if (meal) {
+            weekRecipes.push({
+              id: Date.now() + Math.random(), // Unique ID
+              name: meal.name,
+              description: meal.description,
+              ingredients: meal.ingredients,
+              steps: meal.steps,
+              calories: meal.calories,
+              time: '30 min',
+              difficulty: 'Médio',
+              type: mealType === 'breakfast' ? 'Café da Manhã' : mealType === 'lunch' ? 'Prato Principal' : 'Prato Principal',
+              image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop',
+              tags: []
+            });
+          }
+        });
+      }
+    });
+    
+    return weekRecipes;
+  }, [plansByWeek, dietWeek, totalDietWeeks, lastGeneratedPlan]);
 
   const clearFilters = () => {
     setDifficulty('All');
@@ -283,8 +341,31 @@ const Recipes = () => {
     setSearchTerm('');
   };
 
+  const handlePreviousWeek = () => {
+    if (dietWeek > 1) {
+      setDietWeek(dietWeek - 1);
+    }
+  };
+
+  const handleNextWeek = () => {
+    if (dietWeek < totalDietWeeks) {
+      setDietWeek(dietWeek + 1);
+    }
+  };
+
   const filteredRecipes = useMemo(() => {
-    return recipes.filter(recipe => {
+    // If showing diet week recipes, combine them with regular recipes
+    const allRecipes = [...recipes];
+    if (weekPlanRecipes.length > 0 && searchTerm === '' && activeType === 'All' && difficulty === 'All' && time === 'Any' && calories === 'Any' && dietFilter === 'All' && !showOnlySaved) {
+      // Add week plan recipes when in default view
+      weekPlanRecipes.forEach(weekRecipe => {
+        if (!allRecipes.some(r => r.name === weekRecipe.name && r.calories === weekRecipe.calories)) {
+          allRecipes.push(weekRecipe);
+        }
+      });
+    }
+    
+    return allRecipes.filter(recipe => {
       // 1. Basic Filter Logic
       const nameMatch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
       const difficultyMatch = difficulty === 'All' || recipe.difficulty === difficulty;
@@ -317,13 +398,14 @@ const Recipes = () => {
           return savedRecipes.includes(recipe.id);
       }
 
-      // 3. Weekly Rotation Logic
+      // 3. Weekly Rotation Logic (only for non-diet recipes)
       const isDefaultView = searchTerm === '' && activeType === 'All' && difficulty === 'All' && time === 'Any' && calories === 'Any' && dietFilter === 'All';
+      const isFromDietPlan = weekPlanRecipes.some(wr => wr.name === recipe.name && wr.calories === recipe.calories);
 
-      if (isDefaultView) {
+      if (isDefaultView && !isFromDietPlan) {
           if (savedRecipes.includes(recipe.id)) return true;
           if (recipe.id > 10000) return true;
-          return (recipe.id + currentWeek) % 4 !== 0;
+          return (recipe.id + calendarWeek) % 4 !== 0;
       }
 
       return true;
@@ -333,11 +415,11 @@ const Recipes = () => {
         if (aSaved && !bSaved) return -1;
         if (!aSaved && bSaved) return 1;
         
-        const aScore = (a.id * currentWeek) % 100;
-        const bScore = (b.id * currentWeek) % 100;
+        const aScore = (a.id * calendarWeek) % 100;
+        const bScore = (b.id * calendarWeek) % 100;
         return bScore - aScore;
     });
-  }, [searchTerm, difficulty, time, calories, activeType, dietFilter, savedRecipes, showOnlySaved, recipes, currentWeek]);
+  }, [searchTerm, difficulty, time, calories, activeType, dietFilter, savedRecipes, showOnlySaved, recipes, calendarWeek, weekPlanRecipes]);
   
   const handleGenerateRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -499,6 +581,34 @@ const Recipes = () => {
             </div>
         </div>
 
+        {/* Week Navigation - Only show if there are diet plans */}
+        {totalDietWeeks > 0 && searchTerm === '' && activeType === 'All' && difficulty === 'All' && time === 'Any' && calories === 'Any' && dietFilter === 'All' && !showOnlySaved && (
+          <div className="mb-6 flex items-center justify-between bg-emerald-50 p-4 rounded-xl">
+            <button
+              onClick={handlePreviousWeek}
+              disabled={dietWeek <= 1}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 rounded-lg font-semibold text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            >
+              <ArrowLeftIcon className="w-5 h-5" />
+              Semana Anterior
+            </button>
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-emerald-700">Semana {dietWeek}</h2>
+              {totalDietWeeks > 1 && (
+                <p className="text-xs text-gray-500 mt-1">de {totalDietWeeks} semanas</p>
+              )}
+            </div>
+            <button
+              onClick={handleNextWeek}
+              disabled={dietWeek >= totalDietWeeks}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 rounded-lg font-semibold text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            >
+              Próxima Semana
+              <ArrowRightIcon className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
         {/* --- Category Pills Navigation --- */}
         <div className="mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
             <div className="flex space-x-2">
@@ -529,7 +639,9 @@ const Recipes = () => {
                             ? t(`recipes.filters.type.${activeType}`)
                             : dietFilter !== 'All'
                                 ? `${t(`recipes.filters.diet.${dietFilter.toLowerCase()}`)}`
-                                : `Menu da Semana ${currentWeek}`
+                                : totalDietWeeks > 0 
+                                    ? `Menu da Semana ${dietWeek}`
+                                    : `Menu da Semana ${calendarWeek}`
                 }
             </h2>
             <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
