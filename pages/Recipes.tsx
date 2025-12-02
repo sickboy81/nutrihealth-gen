@@ -15,6 +15,8 @@ import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { ClockIcon } from '../components/icons/ClockIcon';
 import { FireIcon } from '../components/icons/FireIcon';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
+import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
+import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 
 // --- Helper Functions ---
 
