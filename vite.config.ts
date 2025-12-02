@@ -48,45 +48,9 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      rollupOptions: {
-        output: {
-          manualChunks: (id) => {
-            // Separate vendor chunks for better caching
-            if (id.includes('node_modules')) {
-              // React and React DOM - must be together to avoid initialization issues
-              if (id.includes('react') || id.includes('react-dom')) {
-                return 'react-core';
-              }
-              // React Router separately
-              if (id.includes('react-router')) {
-                return 'react-router';
-              }
-              // Chart library
-              if (id.includes('recharts')) {
-                return 'charts';
-              }
-              // PDF generation
-              if (id.includes('jspdf') || id.includes('html2canvas')) {
-                return 'pdf';
-              }
-              // Gemini AI SDK
-              if (id.includes('@google/genai')) {
-                return 'gemini';
-              }
-              // Supabase
-              if (id.includes('@supabase')) {
-                return 'supabase';
-              }
-              // Other vendor libraries
-              return 'vendor';
-            }
-          },
-        },
-      },
-      // Enable source maps for production debugging (optional)
+      // Let Vite handle chunking automatically
       sourcemap: false,
-      // Optimize chunk size
-      chunkSizeWarningLimit: 600,
+      chunkSizeWarningLimit: 1000,
     },
   };
 });
