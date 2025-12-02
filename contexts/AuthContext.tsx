@@ -31,41 +31,47 @@ const ADMIN_EMAILS = [
 
 const getUserRole = async (userId: string): Promise<UserRole> => {
     try {
-        // Prioridade 1: Verificar na tabela admin_users do Supabase
-        const { data: adminData, error: adminError } = await supabase
-            .from('admin_users')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_active', true)
-            .single();
+        // Prioridade 1: Verificar na tabela admin_users do Supabase (se existir)
+        try {
+            const { data: adminData, error: adminError } = await supabase
+                .from('admin_users')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('is_active', true)
+                .maybeSingle(); // Use maybeSingle para não dar erro se não encontrar
 
-        if (!adminError && adminData) {
-            return 'admin';
+            // Se não houver erro e encontrar dados, é admin
+            if (!adminError && adminData) {
+                return 'admin';
+            }
+        } catch (tableError: any) {
+            // Se a tabela não existir, ignora e continua com outros métodos
+            // Não loga erro para não poluir o console se a tabela ainda não foi criada
+            if (!tableError.message?.includes('does not exist') && !tableError.message?.includes('relation')) {
+                console.warn('Error checking admin_users table:', tableError);
+            }
         }
 
         // Prioridade 2: Verificar nos metadados do usuário
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            if (user.user_metadata?.role === 'admin') {
-                return 'admin';
-            }
-            // Prioridade 3: Verificar se o email está na lista de admins (fallback)
-            if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-                return 'admin';
-            }
-        }
-        return 'user';
-    } catch (error) {
-        console.error('Error getting user role:', error);
-        // Fallback para verificação por email se a tabela não existir ainda
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-                return 'admin';
+            if (user) {
+                if (user.user_metadata?.role === 'admin') {
+                    return 'admin';
+                }
+                // Prioridade 3: Verificar se o email está na lista de admins (fallback)
+                if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+                    return 'admin';
+                }
             }
-        } catch (fallbackError) {
-            console.error('Fallback error:', fallbackError);
+        } catch (userError) {
+            console.warn('Error getting user metadata:', userError);
         }
+
+        return 'user';
+    } catch (error) {
+        // Em caso de qualquer erro, sempre retorna 'user' para não bloquear o login
+        console.warn('Error getting user role (non-blocking):', error);
         return 'user';
     }
 };
@@ -79,15 +85,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Check active session
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session?.user) {
-                const role = await getUserRole(session.user.id);
+                // Primeiro define o usuário básico
                 const userData = {
                     id: session.user.id,
                     email: session.user.email!,
                     name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
-                    role
+                    role: 'user' as UserRole
                 };
                 setUser(userData);
-                setIsAdmin(role === 'admin');
+                setIsAdmin(false);
+
+                // Verifica role de forma assíncrona sem bloquear
+                getUserRole(session.user.id).then(role => {
+                    setUser(prev => prev ? { ...prev, role } : null);
+                    setIsAdmin(role === 'admin');
+                }).catch(err => {
+                    console.warn('Error checking admin role on session (non-blocking):', err);
+                });
             }
             setLoading(false);
         });
@@ -95,15 +109,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
-                const role = await getUserRole(session.user.id);
+                // Primeiro define o usuário básico
                 const userData = {
                     id: session.user.id,
                     email: session.user.email!,
                     name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
-                    role
+                    role: 'user' as UserRole
                 };
                 setUser(userData);
-                setIsAdmin(role === 'admin');
+                setIsAdmin(false);
+
+                // Verifica role de forma assíncrona sem bloquear
+                getUserRole(session.user.id).then(role => {
+                    setUser(prev => prev ? { ...prev, role } : null);
+                    setIsAdmin(role === 'admin');
+                }).catch(err => {
+                    console.warn('Error checking admin role on auth change (non-blocking):', err);
+                });
             } else {
                 setUser(null);
                 setIsAdmin(false);
@@ -123,15 +145,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (error) return error.message;
 
             if (data.user) {
-                const role = await getUserRole(data.user.id);
+                // Primeiro define o usuário básico para não bloquear o login
                 const userData = {
                     id: data.user.id,
                     email: data.user.email!,
                     name: data.user.user_metadata?.name || data.user.email!.split('@')[0],
-                    role
+                    role: 'user' as UserRole // Default, será atualizado depois
                 };
                 setUser(userData);
-                setIsAdmin(role === 'admin');
+                setIsAdmin(false); // Default, será atualizado depois
+
+                // Verifica role de forma assíncrona sem bloquear
+                getUserRole(data.user.id).then(role => {
+                    setUser(prev => prev ? { ...prev, role } : null);
+                    setIsAdmin(role === 'admin');
+                }).catch(err => {
+                    // Se der erro, mantém como user normal
+                    console.warn('Error checking admin role (non-blocking):', err);
+                });
             }
 
             return null;
