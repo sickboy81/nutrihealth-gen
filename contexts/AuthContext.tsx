@@ -25,7 +25,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Lista de emails admin (pode ser movido para variável de ambiente ou banco de dados)
 const ADMIN_EMAILS = [
     'admin@nutrihealth.com',
-    'sickboy81@gmail.com' // Adicione seu email aqui
+    'sickboy81@gmail.com',
+    'ngfilho@gmail.com'
 ];
 
 const getUserRole = async (userId: string): Promise<UserRole> => {
