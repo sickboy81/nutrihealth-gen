@@ -272,6 +272,8 @@ const HealthPlan = () => {
     const [selectedMeal, setSelectedMeal] = useState<{ meal: Meal, type: string } | null>(null);
     const [showShoppingList, setShowShoppingList] = useState(false);
     const [currentWeek, setCurrentWeek] = useState(1);
+    const [progress, setProgress] = useState(0);
+    const [progressMessage, setProgressMessage] = useState('');
 
     const dayIndex = new Date().getDay();
     const initialDay = dayIndex === 0 ? 'sunday' : Object.keys(lastGeneratedPlan || {})[dayIndex - 1] || 'monday';
@@ -339,16 +341,54 @@ const HealthPlan = () => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
-        // Don't clear the current plan, just generate a new one for next week
+        setProgress(0);
+        setProgressMessage(t('healthPlan.progress.analyzing'));
+        
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+            setProgress(prev => {
+                if (prev >= 90) return prev;
+                const newProgress = prev + Math.random() * 15;
+                return Math.min(newProgress, 90);
+            });
+        }, 500);
+
+        // Update messages based on progress
+        const messageInterval = setInterval(() => {
+            setProgress(prev => {
+                if (prev < 20) {
+                    setProgressMessage(t('healthPlan.progress.analyzing'));
+                } else if (prev < 40) {
+                    setProgressMessage(t('healthPlan.progress.planning'));
+                } else if (prev < 60) {
+                    setProgressMessage(t('healthPlan.progress.creating'));
+                } else if (prev < 80) {
+                    setProgressMessage(t('healthPlan.progress.optimizing'));
+                } else {
+                    setProgressMessage(t('healthPlan.progress.finalizing'));
+                }
+                return prev;
+            });
+        }, 800);
+
         try {
             const result = await generateHealthPlan(goal, restrictions, dailyGoals.calories.target, language, userProfile.dietaryPreference);
+            clearInterval(progressInterval);
+            clearInterval(messageInterval);
+            setProgress(100);
+            setProgressMessage(t('healthPlan.progress.complete'));
+            await new Promise(resolve => setTimeout(resolve, 300));
             setHealthPlan(result);
             // The useEffect will handle saving and setting the week
         } catch (err) {
+            clearInterval(progressInterval);
+            clearInterval(messageInterval);
             setError(t('healthPlan.generationError'));
             console.error(err);
         } finally {
             setIsLoading(false);
+            setProgress(0);
+            setProgressMessage('');
         }
     };
 
@@ -443,17 +483,33 @@ const HealthPlan = () => {
     );
 
     const PlanSkeleton = () => (
-        <div className="animate-pulse">
-            <div className="flex justify-between gap-1 mb-4">
-                {[...Array(7)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded-lg flex-1"></div>)}
+        <Card className="p-6">
+            <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-600">{progressMessage || t('healthPlan.progress.analyzing')}</span>
+                    <span className="text-sm font-bold text-emerald-600">{Math.round(progress)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div 
+                        className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full rounded-full transition-all duration-500 ease-out relative"
+                        style={{ width: `${progress}%` }}
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                    </div>
+                </div>
             </div>
-            <div className="h-8 w-3/4 bg-gray-200 rounded-md mb-6 mx-auto"></div>
-            <div className="space-y-4">
-                <div className="h-32 bg-gray-200 rounded-2xl"></div>
-                <div className="h-32 bg-gray-200 rounded-2xl"></div>
-                <div className="h-32 bg-gray-200 rounded-2xl"></div>
+            <div className="animate-pulse">
+                <div className="flex justify-between gap-1 mb-4">
+                    {[...Array(7)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded-lg flex-1"></div>)}
+                </div>
+                <div className="h-8 w-3/4 bg-gray-200 rounded-md mb-6 mx-auto"></div>
+                <div className="space-y-4">
+                    <div className="h-32 bg-gray-200 rounded-2xl"></div>
+                    <div className="h-32 bg-gray-200 rounded-2xl"></div>
+                    <div className="h-32 bg-gray-200 rounded-2xl"></div>
+                </div>
             </div>
-        </div>
+        </Card>
     );
 
     return (

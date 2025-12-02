@@ -273,6 +273,14 @@ const translations = {
           allDays: "Todos os dias",
           selectDay: "Selecione um dia",
           generateButton: "Gerar Lista"
+      },
+      progress: {
+          analyzing: "Analisando seu perfil e objetivos...",
+          planning: "Criando estrutura do plano alimentar...",
+          creating: "Gerando refeições personalizadas...",
+          optimizing: "Otimizando nutrientes e calorias...",
+          finalizing: "Finalizando detalhes do plano...",
+          complete: "Plano gerado com sucesso!"
       }
     },
     settings: {
@@ -712,6 +720,14 @@ const translations = {
           allDays: "All days",
           selectDay: "Select a day",
           generateButton: "Generate List"
+      },
+      progress: {
+          analyzing: "Analyzing your profile and goals...",
+          planning: "Creating meal plan structure...",
+          creating: "Generating personalized meals...",
+          optimizing: "Optimizing nutrients and calories...",
+          finalizing: "Finalizing plan details...",
+          complete: "Plan generated successfully!"
       }
     },
     settings: {
