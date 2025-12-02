@@ -7,7 +7,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 let supabase: ReturnType<typeof createClient>;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not found. Using mock client. Authentication features will be limited.');
+    // Only warn in development
+    if (import.meta.env.DEV) {
+        console.warn('Supabase environment variables not found. Using mock client. Authentication features will be limited.');
+    }
     // Create a mock client with dummy values
     supabase = createClient('https://placeholder.supabase.co', 'placeholder-key');
 } else {

@@ -28,10 +28,11 @@ const getApiKey = (): string | null => {
 
 const apiKey = getApiKey();
 
-if (!apiKey) {
-    console.error('⚠️ GEMINI_API_KEY não configurada!');
-    console.error('Por favor, configure a chave da API no arquivo .env.local:');
-    console.error('GEMINI_API_KEY=sua_chave_aqui');
+// Only warn in development
+if (!apiKey && import.meta.env.DEV) {
+    console.warn('⚠️ GEMINI_API_KEY não configurada!');
+    console.warn('Por favor, configure a chave da API no arquivo .env.local:');
+    console.warn('GEMINI_API_KEY=sua_chave_aqui');
 }
 
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null as any;
