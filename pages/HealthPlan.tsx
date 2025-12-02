@@ -15,6 +15,8 @@ import { ClipboardListIcon } from '../components/icons/ClipboardListIcon';
 import { XIcon } from '../components/icons/XIcon';
 import { CheckIcon } from '../components/icons/CheckIcon';
 import { ShoppingCartIcon } from '../components/icons/ShoppingCartIcon';
+import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
+import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 
 const RecipeModal = ({ meal, mealType, onClose }: { meal: Meal; mealType: string; onClose: () => void; }) => {
     const { t } = useI18n();
@@ -212,7 +214,7 @@ const ShoppingListModal = ({ onClose }: { onClose: () => void }) => {
 
 const HealthPlan = () => {
     const { t, language } = useI18n();
-    const { dailyGoals, lastGeneratedPlan, setHealthPlan, replaceMealInPlan, savedPlans, saveCurrentPlan, userProfile } = useUserData();
+    const { dailyGoals, lastGeneratedPlan, setHealthPlan, replaceMealInPlan, savedPlans, saveCurrentPlan, userProfile, loadSavedPlan } = useUserData();
     const [goal, setGoal] = useState('perder peso');
     const [restrictions, setRestrictions] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -220,31 +222,79 @@ const HealthPlan = () => {
     const [regeneratingMeal, setRegeneratingMeal] = useState<{ day: keyof WeeklyPlan; meal: keyof DayPlan; } | null>(null);
     const [selectedMeal, setSelectedMeal] = useState<{ meal: Meal, type: string } | null>(null);
     const [showShoppingList, setShowShoppingList] = useState(false);
+    const [currentWeek, setCurrentWeek] = useState(1);
 
     const dayIndex = new Date().getDay();
     const initialDay = dayIndex === 0 ? 'sunday' : Object.keys(lastGeneratedPlan || {})[dayIndex - 1] || 'monday';
     const [selectedDay, setSelectedDay] = useState<keyof WeeklyPlan>(initialDay as keyof WeeklyPlan);
 
-    useEffect(() => {
+    // Organize saved plans by week number
+    const plansByWeek = useMemo(() => {
+        const sorted = [...savedPlans].sort((a, b) => a.timestamp - b.timestamp);
+        const weeks: { [week: number]: WeeklyPlan } = {};
+        sorted.forEach((plan, index) => {
+            weeks[index + 1] = plan.plan;
+        });
+        // Add current plan as the latest week
         if (lastGeneratedPlan) {
+            const weekNumber = sorted.length + 1;
+            weeks[weekNumber] = lastGeneratedPlan;
+            if (currentWeek > weekNumber) {
+                setCurrentWeek(weekNumber);
+            }
+        }
+        return weeks;
+    }, [savedPlans, lastGeneratedPlan, currentWeek]);
+
+    const totalWeeks = useMemo(() => {
+        const savedCount = savedPlans.length;
+        const hasCurrentPlan = lastGeneratedPlan && !savedPlans.some(p => JSON.stringify(p.plan) === JSON.stringify(lastGeneratedPlan));
+        return Math.max(savedCount + (hasCurrentPlan ? 1 : 0), lastGeneratedPlan ? 1 : 0);
+    }, [savedPlans.length, lastGeneratedPlan]);
+
+    // Get the plan for current week
+    const currentWeekPlan = useMemo(() => {
+        if (plansByWeek[currentWeek]) {
+            return plansByWeek[currentWeek];
+        }
+        // If current week is the latest and we have a lastGeneratedPlan, use it
+        if (currentWeek === totalWeeks && lastGeneratedPlan) {
+            return lastGeneratedPlan;
+        }
+        return null;
+    }, [plansByWeek, currentWeek, lastGeneratedPlan, totalWeeks]);
+
+    useEffect(() => {
+        if (currentWeekPlan) {
             setSelectedDay(initialDay as keyof WeeklyPlan);
         }
-    }, []);
+    }, [currentWeekPlan]);
+
+    useEffect(() => {
+        // When a new plan is generated, automatically save it and move to that week
+        if (lastGeneratedPlan && !savedPlans.some(p => JSON.stringify(p.plan) === JSON.stringify(lastGeneratedPlan))) {
+            const newWeek = savedPlans.length + 1;
+            setCurrentWeek(newWeek);
+            // Save the plan automatically
+            saveCurrentPlan();
+        }
+    }, [lastGeneratedPlan, savedPlans.length]);
 
     const isCurrentPlanSaved = useMemo(() => {
-        if (!lastGeneratedPlan) return false;
-        return savedPlans.some(p => JSON.stringify(p.plan) === JSON.stringify(lastGeneratedPlan));
-    }, [lastGeneratedPlan, savedPlans]);
+        if (!currentWeekPlan) return false;
+        return savedPlans.some(p => JSON.stringify(p.plan) === JSON.stringify(currentWeekPlan));
+    }, [currentWeekPlan, savedPlans]);
 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
-        setHealthPlan(null);
+        // Don't clear the current plan, just generate a new one for next week
         try {
             const result = await generateHealthPlan(goal, restrictions, dailyGoals.calories.target, language, userProfile.dietaryPreference);
             setHealthPlan(result);
+            // The useEffect will handle saving and setting the week
         } catch (err) {
             setError(t('healthPlan.generationError'));
             console.error(err);
@@ -254,11 +304,11 @@ const HealthPlan = () => {
     };
 
     const handleReplaceMeal = async (day: keyof WeeklyPlan, mealType: keyof DayPlan) => {
-        if (!lastGeneratedPlan) return;
+        if (!currentWeekPlan) return;
         setRegeneratingMeal({ day, meal: mealType });
         setError(null);
 
-        const currentDayPlan = lastGeneratedPlan[day];
+        const currentDayPlan = currentWeekPlan[day];
         const mealToReplace = currentDayPlan[mealType];
         const otherMeals = (Object.keys(currentDayPlan) as Array<keyof DayPlan>)
             .filter(mt => mt !== mealType)
@@ -285,10 +335,33 @@ const HealthPlan = () => {
     };
 
     const weekDays: (keyof WeeklyPlan)[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const currentDayPlan = lastGeneratedPlan ? lastGeneratedPlan[selectedDay] : null;
+    const currentDayPlan = currentWeekPlan ? currentWeekPlan[selectedDay] : null;
     const totalDayCalories = currentDayPlan
         ? currentDayPlan.breakfast.calories + currentDayPlan.lunch.calories + currentDayPlan.dinner.calories
         : 0;
+
+    const handlePreviousWeek = () => {
+        if (currentWeek > 1) {
+            const prevWeek = currentWeek - 1;
+            setCurrentWeek(prevWeek);
+            if (plansByWeek[prevWeek]) {
+                loadSavedPlan(plansByWeek[prevWeek]);
+            }
+        }
+    };
+
+    const handleNextWeek = () => {
+        if (currentWeek < totalWeeks) {
+            const nextWeek = currentWeek + 1;
+            setCurrentWeek(nextWeek);
+            if (plansByWeek[nextWeek]) {
+                loadSavedPlan(plansByWeek[nextWeek]);
+            } else if (nextWeek === totalWeeks && lastGeneratedPlan) {
+                // If it's the last week and we have a current plan, use it
+                loadSavedPlan(lastGeneratedPlan);
+            }
+        }
+    };
 
     const MealCard = ({ meal, mealType, icon: Icon, onReplace, isRegenerating, onCardClick }: { meal: Meal, mealType: string, icon: React.FC<any>, onReplace: () => void, isRegenerating: boolean, onCardClick: () => void }) => (
         <Card className="flex items-start p-4 space-x-4 group cursor-pointer hover:shadow-lg transition-shadow" onClick={onCardClick}>
@@ -364,8 +437,34 @@ const HealthPlan = () => {
 
             {isLoading && <PlanSkeleton />}
 
-            {!isLoading && lastGeneratedPlan && (
+            {!isLoading && currentWeekPlan && (
                 <div className="animate-fade-in">
+                    {/* Week Navigation */}
+                    <div className="flex items-center justify-between mb-6 bg-emerald-50 p-4 rounded-xl">
+                        <button
+                            onClick={handlePreviousWeek}
+                            disabled={currentWeek <= 1}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 rounded-lg font-semibold text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+                        >
+                            <ArrowLeftIcon className="w-5 h-5" />
+                            Semana Anterior
+                        </button>
+                        <div className="text-center">
+                            <h2 className="text-2xl font-bold text-emerald-700">Semana {currentWeek}</h2>
+                            {totalWeeks > 1 && (
+                                <p className="text-sm text-gray-500 mt-1">de {totalWeeks} semanas</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={handleNextWeek}
+                            disabled={currentWeek >= totalWeeks}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 rounded-lg font-semibold text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+                        >
+                            Próxima Semana
+                            <ArrowRightIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
                     <div className="flex flex-wrap gap-2 justify-between items-center mb-4">
                         <h3 className="text-xl font-bold text-gray-800">{t(`healthPlan.days.${selectedDay}`)}</h3>
                         <div className="flex gap-2">

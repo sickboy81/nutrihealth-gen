@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserData } from '../contexts/UserDataContext';
+import { generateHealthPlan } from '../services/geminiService';
+import { useI18n } from '../contexts/I18nContext';
 import Card from '../components/Card';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 
 const Onboarding = () => {
     const navigate = useNavigate();
-    const { updateProfile, updateGoals } = useUserData();
+    const { updateProfile, updateGoals, dailyGoals, userProfile, setHealthPlan } = useUserData();
+    const { t, language } = useI18n();
     const [step, setStep] = useState(1);
+    const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
     const [formData, setFormData] = useState({
         // Step 1: Basic
@@ -43,8 +47,8 @@ const Onboarding = () => {
         navigate('/dashboard');
     };
 
-    const handleFinish = () => {
-        // Save data to context
+    const handleFinish = async () => {
+        // Save data to context first
         updateProfile({
             gender: formData.gender as 'male' | 'female',
             age: Number(formData.age),
@@ -56,6 +60,81 @@ const Onboarding = () => {
             primaryGoal: formData.goal,
             activityLevel: formData.activityLevel
         });
+
+        // Generate week 1 diet plan automatically
+        setIsGeneratingPlan(true);
+        try {
+            // Map goal values to Portuguese text for the AI
+            const goalTexts: { [key: string]: string } = {
+                'lose_weight': 'perder peso',
+                'gain_weight': 'ganhar peso',
+                'maintain': 'manter peso',
+                'gain_muscle': 'ganhar massa muscular'
+            };
+            
+            const goalText = goalTexts[formData.goal] || 'perder peso';
+            
+            // Wait a bit for the profile and goals to update
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Get updated profile and goals
+            const updatedProfile = { 
+                ...userProfile, 
+                gender: formData.gender as 'male' | 'female',
+                age: Number(formData.age),
+                weight: Number(formData.weight),
+                height: Number(formData.height),
+                objective: formData.goal as any,
+                activityLevel: formData.activityLevel as any
+            };
+            
+            // Recalculate goals to get correct calories
+            const calculateBMR = (profile: typeof updatedProfile) => {
+                const { weight, height, age, gender } = profile;
+                if (gender === 'male') {
+                    return 10 * weight + 6.25 * height - 5 * age + 5;
+                } else {
+                    return 10 * weight + 6.25 * height - 5 * age - 161;
+                }
+            };
+            
+            const activityMultipliers: { [key: string]: number } = {
+                sedentary: 1.2,
+                light: 1.375,
+                moderate: 1.55,
+                active: 1.725,
+                very_active: 1.9
+            };
+            
+            const bmr = calculateBMR(updatedProfile);
+            const tdee = bmr * (activityMultipliers[formData.activityLevel] || 1.55);
+            
+            // Adjust calories based on goal
+            let targetCalories = tdee;
+            if (formData.goal === 'lose_weight') {
+                targetCalories = tdee * 0.85; // 15% deficit
+            } else if (formData.goal === 'gain_weight' || formData.goal === 'gain_muscle') {
+                targetCalories = tdee * 1.15; // 15% surplus
+            }
+            
+            // Generate the health plan for week 1
+            const plan = await generateHealthPlan(
+                goalText,
+                '',
+                Math.round(targetCalories),
+                language,
+                updatedProfile.dietaryPreference || 'Omnivore'
+            );
+            
+            if (plan) {
+                setHealthPlan(plan);
+            }
+        } catch (error) {
+            console.error('Error generating initial plan:', error);
+            // Continue even if plan generation fails - user can generate manually later
+        } finally {
+            setIsGeneratingPlan(false);
+        }
 
         // Redirect to dashboard after completing onboarding
         navigate('/dashboard');
