@@ -31,14 +31,25 @@ const ADMIN_EMAILS = [
 
 const getUserRole = async (userId: string): Promise<UserRole> => {
     try {
-        // Verificar no Supabase se o usuário tem role admin nos metadados
+        // Prioridade 1: Verificar na tabela admin_users do Supabase
+        const { data: adminData, error: adminError } = await supabase
+            .from('admin_users')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .single();
+
+        if (!adminError && adminData) {
+            return 'admin';
+        }
+
+        // Prioridade 2: Verificar nos metadados do usuário
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            // Verificar nos metadados do usuário
             if (user.user_metadata?.role === 'admin') {
                 return 'admin';
             }
-            // Verificar se o email está na lista de admins
+            // Prioridade 3: Verificar se o email está na lista de admins (fallback)
             if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
                 return 'admin';
             }
@@ -46,6 +57,15 @@ const getUserRole = async (userId: string): Promise<UserRole> => {
         return 'user';
     } catch (error) {
         console.error('Error getting user role:', error);
+        // Fallback para verificação por email se a tabela não existir ainda
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+                return 'admin';
+            }
+        } catch (fallbackError) {
+            console.error('Fallback error:', fallbackError);
+        }
         return 'user';
     }
 };

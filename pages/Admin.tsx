@@ -12,7 +12,18 @@ interface UserStats {
     email: string;
     name: string;
     created_at: string;
-    last_login?: string;
+    last_sign_in_at?: string;
+    is_banned: boolean;
+    is_admin: boolean;
+}
+
+interface SystemStats {
+    total_users: number;
+    active_users: number;
+    banned_users: number;
+    admin_users: number;
+    total_user_data: number;
+    recent_signups: number;
 }
 
 const Admin = () => {
@@ -23,11 +34,19 @@ const Admin = () => {
     const [activeTab, setActiveTab] = useState<'users' | 'recipes' | 'stats' | 'settings'>('users');
     const [users, setUsers] = useState<UserStats[]>([]);
     const [loading, setLoading] = useState(false);
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        totalRecipes: 0,
-        activeUsers: 0
+    const [stats, setStats] = useState<SystemStats>({
+        total_users: 0,
+        active_users: 0,
+        banned_users: 0,
+        admin_users: 0,
+        total_user_data: 0,
+        recent_signups: 0
     });
+    const [banReason, setBanReason] = useState('');
+    const [banPermanent, setBanPermanent] = useState(false);
+    const [showBanModal, setShowBanModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<UserStats | null>(null);
+    const [exportLoading, setExportLoading] = useState(false);
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
     const [recipeForm, setRecipeForm] = useState({
         name: '',
@@ -52,23 +71,53 @@ const Admin = () => {
     const loadUsers = async () => {
         setLoading(true);
         try {
-            // Nota: Em produção, você precisaria criar uma função no Supabase Edge Function
-            // ou uma tabela de usuários para listar todos os usuários
-            // Por enquanto, vamos apenas mostrar uma mensagem
-            setUsers([]);
+            const { data, error } = await supabase.rpc('get_all_users');
+            if (error) {
+                console.error('Error loading users:', error);
+                // Se a função não existir ainda, mostrar mensagem
+                if (error.message.includes('function') || error.message.includes('does not exist')) {
+                    setUsers([]);
+                } else {
+                    alert('Erro ao carregar usuários: ' + error.message);
+                }
+            } else {
+                setUsers(data || []);
+            }
         } catch (error) {
             console.error('Error loading users:', error);
+            setUsers([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const loadStats = () => {
-        setStats({
-            totalUsers: 0, // Seria carregado do banco
-            totalRecipes: recipes.length,
-            activeUsers: 0 // Seria carregado do banco
-        });
+    const loadStats = async () => {
+        try {
+            const { data, error } = await supabase.rpc('get_system_stats');
+            if (error) {
+                console.error('Error loading stats:', error);
+                // Fallback para stats básicos
+                setStats({
+                    total_users: 0,
+                    active_users: 0,
+                    banned_users: 0,
+                    admin_users: 0,
+                    total_user_data: 0,
+                    recent_signups: 0
+                });
+            } else {
+                setStats(data || {
+                    total_users: 0,
+                    active_users: 0,
+                    banned_users: 0,
+                    admin_users: 0,
+                    total_user_data: 0,
+                    recent_signups: 0
+                });
+            }
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
     };
 
     const handleCreateRecipe = () => {
@@ -108,6 +157,134 @@ const Admin = () => {
         if (confirm('Tem certeza que deseja deletar esta receita?')) {
             // Implementar deleção de receita
             alert('Funcionalidade de deleção será implementada');
+        }
+    };
+
+    const handleBanUser = async (userId: string) => {
+        setSelectedUser(users.find(u => u.id === userId) || null);
+        setShowBanModal(true);
+    };
+
+    const confirmBanUser = async () => {
+        if (!selectedUser) return;
+
+        try {
+            const { data, error } = await supabase.rpc('ban_user', {
+                target_user_id: selectedUser.id,
+                ban_reason: banReason || null,
+                is_permanent_ban: banPermanent
+            });
+
+            if (error) {
+                alert('Erro ao banir usuário: ' + error.message);
+            } else {
+                alert('Usuário banido com sucesso!');
+                setShowBanModal(false);
+                setBanReason('');
+                setBanPermanent(false);
+                setSelectedUser(null);
+                loadUsers();
+                loadStats();
+            }
+        } catch (error: any) {
+            alert('Erro ao banir usuário: ' + error.message);
+        }
+    };
+
+    const handleUnbanUser = async (userId: string) => {
+        if (!confirm('Tem certeza que deseja desbanir este usuário?')) return;
+
+        try {
+            const { data, error } = await supabase.rpc('unban_user', {
+                target_user_id: userId
+            });
+
+            if (error) {
+                alert('Erro ao desbanir usuário: ' + error.message);
+            } else {
+                alert('Usuário desbanido com sucesso!');
+                loadUsers();
+                loadStats();
+            }
+        } catch (error: any) {
+            alert('Erro ao desbanir usuário: ' + error.message);
+        }
+    };
+
+    const handleAddAdmin = async (userId: string) => {
+        if (!confirm('Tem certeza que deseja tornar este usuário um administrador?')) return;
+
+        try {
+            const { data, error } = await supabase.rpc('add_admin', {
+                target_user_id: userId,
+                admin_notes: null
+            });
+
+            if (error) {
+                alert('Erro ao adicionar admin: ' + error.message);
+            } else {
+                alert('Usuário promovido a administrador com sucesso!');
+                loadUsers();
+                loadStats();
+            }
+        } catch (error: any) {
+            alert('Erro ao adicionar admin: ' + error.message);
+        }
+    };
+
+    const handleRemoveAdmin = async (userId: string) => {
+        if (!confirm('Tem certeza que deseja remover os privilégios de administrador deste usuário?')) return;
+
+        try {
+            const { data, error } = await supabase.rpc('remove_admin', {
+                target_user_id: userId
+            });
+
+            if (error) {
+                alert('Erro ao remover admin: ' + error.message);
+            } else {
+                alert('Privilégios de administrador removidos com sucesso!');
+                loadUsers();
+                loadStats();
+            }
+        } catch (error: any) {
+            alert('Erro ao remover admin: ' + error.message);
+        }
+    };
+
+    const handleExportData = async () => {
+        setExportLoading(true);
+        try {
+            // Exportar dados de usuários
+            const { data: usersData, error: usersError } = await supabase.rpc('get_all_users');
+            
+            if (usersError) {
+                throw usersError;
+            }
+
+            // Criar arquivo JSON
+            const exportData = {
+                export_date: new Date().toISOString(),
+                users: usersData || [],
+                stats: stats,
+                total_recipes: recipes.length
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nutrihealth-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('Dados exportados com sucesso!');
+        } catch (error: any) {
+            alert('Erro ao exportar dados: ' + error.message);
+        } finally {
+            setExportLoading(false);
         }
     };
 
@@ -175,37 +352,91 @@ const Admin = () => {
                     {activeTab === 'users' && (
                         <Card className="p-6">
                             <h2 className="text-2xl font-bold text-gray-800 mb-4">Gerenciar Usuários</h2>
+                            <div className="mb-4 flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-800">Lista de Usuários</h3>
+                                <button
+                                    onClick={loadUsers}
+                                    className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                                >
+                                    Atualizar
+                                </button>
+                            </div>
                             {loading ? (
-                                <p className="text-gray-500">Carregando usuários...</p>
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500">Carregando usuários...</p>
+                                </div>
                             ) : users.length === 0 ? (
                                 <div className="text-center py-8">
                                     <p className="text-gray-500 mb-4">
-                                        Para listar usuários, é necessário configurar uma função no Supabase
-                                        ou criar uma tabela de usuários.
+                                        {stats.total_users === 0 
+                                            ? 'Execute o script SQL no Supabase para habilitar esta funcionalidade.'
+                                            : 'Nenhum usuário encontrado.'}
                                     </p>
                                     <p className="text-sm text-gray-400">
-                                        Esta funcionalidade requer configuração adicional no backend.
+                                        Verifique se a função get_all_users foi criada no Supabase.
                                     </p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-4 max-h-96 overflow-y-auto">
                                     {users.map((u) => (
-                                        <div key={u.id} className="border border-gray-200 rounded-lg p-4">
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">{u.name}</p>
+                                        <div key={u.id} className={`border rounded-lg p-4 ${u.is_banned ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <p className="font-semibold text-gray-800">{u.name || u.email}</p>
+                                                        {u.is_admin && (
+                                                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                                                                ADMIN
+                                                            </span>
+                                                        )}
+                                                        {u.is_banned && (
+                                                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">
+                                                                BANIDO
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-sm text-gray-500">{u.email}</p>
                                                     <p className="text-xs text-gray-400 mt-1">
-                                                        Criado em: {new Date(u.created_at).toLocaleDateString()}
+                                                        Criado em: {new Date(u.created_at).toLocaleDateString('pt-BR')}
                                                     </p>
+                                                    {u.last_sign_in_at && (
+                                                        <p className="text-xs text-gray-400">
+                                                            Último login: {new Date(u.last_sign_in_at).toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600">
-                                                        Editar
-                                                    </button>
-                                                    <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
-                                                        Deletar
-                                                    </button>
+                                                <div className="flex flex-col gap-2 ml-4">
+                                                    {!u.is_admin && (
+                                                        <button
+                                                            onClick={() => handleAddAdmin(u.id)}
+                                                            className="px-3 py-1.5 bg-purple-500 text-white text-sm rounded-lg hover:bg-purple-600 transition-colors"
+                                                        >
+                                                            Tornar Admin
+                                                        </button>
+                                                    )}
+                                                    {u.is_admin && u.id !== user?.id && (
+                                                        <button
+                                                            onClick={() => handleRemoveAdmin(u.id)}
+                                                            className="px-3 py-1.5 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition-colors"
+                                                        >
+                                                            Remover Admin
+                                                        </button>
+                                                    )}
+                                                    {!u.is_banned ? (
+                                                        <button
+                                                            onClick={() => handleBanUser(u.id)}
+                                                            className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                                                        >
+                                                            Banir
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleUnbanUser(u.id)}
+                                                            className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors"
+                                                        >
+                                                            Desbanir
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -388,18 +619,43 @@ const Admin = () => {
                     )}
 
                     {activeTab === 'stats' && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Card className="p-6 text-center">
-                                <div className="text-4xl font-bold text-emerald-600 mb-2">{stats.totalUsers}</div>
-                                <div className="text-gray-600">Total de Usuários</div>
-                            </Card>
-                            <Card className="p-6 text-center">
-                                <div className="text-4xl font-bold text-blue-600 mb-2">{stats.totalRecipes}</div>
-                                <div className="text-gray-600">Total de Receitas</div>
-                            </Card>
-                            <Card className="p-6 text-center">
-                                <div className="text-4xl font-bold text-purple-600 mb-2">{stats.activeUsers}</div>
-                                <div className="text-gray-600">Usuários Ativos</div>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <Card className="p-6 text-center">
+                                    <div className="text-4xl font-bold text-emerald-600 mb-2">{stats.total_users}</div>
+                                    <div className="text-gray-600">Total de Usuários</div>
+                                </Card>
+                                <Card className="p-6 text-center">
+                                    <div className="text-4xl font-bold text-blue-600 mb-2">{recipes.length}</div>
+                                    <div className="text-gray-600">Total de Receitas</div>
+                                </Card>
+                                <Card className="p-6 text-center">
+                                    <div className="text-4xl font-bold text-purple-600 mb-2">{stats.active_users}</div>
+                                    <div className="text-gray-600">Usuários Ativos (30 dias)</div>
+                                </Card>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <Card className="p-6 text-center">
+                                    <div className="text-4xl font-bold text-red-600 mb-2">{stats.banned_users}</div>
+                                    <div className="text-gray-600">Usuários Banidos</div>
+                                </Card>
+                                <Card className="p-6 text-center">
+                                    <div className="text-4xl font-bold text-orange-600 mb-2">{stats.admin_users}</div>
+                                    <div className="text-gray-600">Administradores</div>
+                                </Card>
+                                <Card className="p-6 text-center">
+                                    <div className="text-4xl font-bold text-indigo-600 mb-2">{stats.recent_signups}</div>
+                                    <div className="text-gray-600">Novos Usuários (7 dias)</div>
+                                </Card>
+                            </div>
+                            <Card className="p-6">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Dados do Sistema</h3>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Total de Dados de Usuários:</span>
+                                        <span className="font-semibold">{stats.total_user_data}</span>
+                                    </div>
+                                </div>
                             </Card>
                         </div>
                     )}
@@ -414,25 +670,95 @@ const Admin = () => {
                                     <p className="text-sm text-gray-600">Nome: {user.name}</p>
                                     <p className="text-sm text-gray-600">ID: {user.id}</p>
                                 </div>
-                                <div className="border border-gray-200 rounded-lg p-4">
-                                    <h3 className="font-semibold text-gray-800 mb-2">Ações Administrativas</h3>
-                                    <div className="space-y-2">
-                                        <button className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                                            Exportar Dados de Usuários
-                                        </button>
-                                        <button className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
-                                            Limpar Cache do Sistema
-                                        </button>
-                                        <button className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
-                                            Fazer Backup do Banco de Dados
-                                        </button>
+                                    <div className="border border-gray-200 rounded-lg p-4">
+                                        <h3 className="font-semibold text-gray-800 mb-2">Ações Administrativas</h3>
+                                        <div className="space-y-2">
+                                            <button
+                                                onClick={handleExportData}
+                                                disabled={exportLoading}
+                                                className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                {exportLoading ? 'Exportando...' : 'Exportar Dados de Usuários'}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    loadUsers();
+                                                    loadStats();
+                                                    alert('Dados atualizados!');
+                                                }}
+                                                className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                                            >
+                                                Atualizar Estatísticas
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
                             </div>
                         </Card>
                     )}
                 </div>
             </div>
+
+            {/* Modal de Banir Usuário */}
+            {showBanModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Banir Usuário</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-2">
+                                    <strong>Usuário:</strong> {selectedUser.name || selectedUser.email}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                    <strong>Email:</strong> {selectedUser.email}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Motivo do Banimento (opcional)
+                                </label>
+                                <textarea
+                                    value={banReason}
+                                    onChange={(e) => setBanReason(e.target.value)}
+                                    rows={3}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    placeholder="Digite o motivo do banimento..."
+                                />
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="permanent"
+                                    checked={banPermanent}
+                                    onChange={(e) => setBanPermanent(e.target.checked)}
+                                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                />
+                                <label htmlFor="permanent" className="ml-2 text-sm text-gray-700">
+                                    Banimento permanente
+                                </label>
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    onClick={() => {
+                                        setShowBanModal(false);
+                                        setBanReason('');
+                                        setBanPermanent(false);
+                                        setSelectedUser(null);
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmBanUser}
+                                    className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                >
+                                    Confirmar Banimento
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
