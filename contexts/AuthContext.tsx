@@ -44,11 +44,45 @@ const getUserRole = async (userId: string): Promise<UserRole> => {
             if (!adminError && adminData) {
                 return 'admin';
             }
+
+            // Se houver erro 500 ou 404, a tabela provavelmente não existe ou há problema de permissão
+            // Ignora silenciosamente e continua com outros métodos
+            if (adminError) {
+                const errorCode = adminError.code || '';
+                const errorMessage = adminError.message || '';
+                
+                // Ignora erros de tabela não encontrada ou problemas de permissão
+                if (
+                    errorCode === 'PGRST116' || // Table not found
+                    errorCode === '42P01' || // relation does not exist
+                    errorMessage.includes('does not exist') ||
+                    errorMessage.includes('relation') ||
+                    errorMessage.includes('permission denied') ||
+                    adminError.status === 500 || // Internal server error (pode ser RLS ou tabela não existe)
+                    adminError.status === 404
+                ) {
+                    // Tabela não existe ou problema de permissão - ignora e usa fallback
+                    // Não loga para não poluir o console
+                } else {
+                    // Outro tipo de erro - loga apenas em desenvolvimento
+                    if (!import.meta.env.PROD) {
+                        console.warn('Error checking admin_users table:', adminError);
+                    }
+                }
+            }
         } catch (tableError: any) {
-            // Se a tabela não existir, ignora e continua com outros métodos
-            // Não loga erro para não poluir o console se a tabela ainda não foi criada
-            if (!tableError.message?.includes('does not exist') && !tableError.message?.includes('relation')) {
-                console.warn('Error checking admin_users table:', tableError);
+            // Se a tabela não existir ou houver qualquer erro, ignora e continua
+            // Não loga erro para não poluir o console
+            const errorMessage = tableError?.message || '';
+            if (
+                !errorMessage.includes('does not exist') && 
+                !errorMessage.includes('relation') &&
+                !errorMessage.includes('permission denied')
+            ) {
+                // Apenas loga em desenvolvimento se for um erro inesperado
+                if (!import.meta.env.PROD) {
+                    console.warn('Unexpected error checking admin_users:', tableError);
+                }
             }
         }
 

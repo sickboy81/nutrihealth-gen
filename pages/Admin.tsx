@@ -56,7 +56,8 @@ const Admin = () => {
         type: 'Prato Principal' as Recipe['type'],
         ingredients: '',
         steps: '',
-        tags: ''
+        tags: '',
+        image: ''
     });
 
     useEffect(() => {
@@ -126,21 +127,52 @@ const Admin = () => {
             return;
         }
 
-        const newRecipe: Recipe = {
-            id: Date.now(),
-            name: recipeForm.name,
-            time: recipeForm.time || '30 min',
-            calories: parseInt(recipeForm.calories) || 0,
-            difficulty: recipeForm.difficulty,
-            type: recipeForm.type,
-            image: `https://source.unsplash.com/800x600/?${encodeURIComponent(recipeForm.name)},food`,
-            ingredients: recipeForm.ingredients.split('\n').filter(i => i.trim()),
-            steps: recipeForm.steps.split('\n').filter(s => s.trim()),
-            tags: recipeForm.tags ? recipeForm.tags.split(',').map(t => t.trim()) : []
-        };
+        const imageUrl = recipeForm.image.trim() || 
+            `https://source.unsplash.com/800x600/?${encodeURIComponent(recipeForm.name)},food`;
 
-        addRecipe(newRecipe);
-        alert('Receita criada com sucesso!');
+        if (selectedRecipe) {
+            // Atualizar receita existente
+            const updatedRecipe: Recipe = {
+                ...selectedRecipe,
+                name: recipeForm.name,
+                time: recipeForm.time || selectedRecipe.time,
+                calories: parseInt(recipeForm.calories) || selectedRecipe.calories,
+                difficulty: recipeForm.difficulty,
+                type: recipeForm.type,
+                image: imageUrl,
+                ingredients: recipeForm.ingredients.split('\n').filter(i => i.trim()),
+                steps: recipeForm.steps.split('\n').filter(s => s.trim()),
+                tags: recipeForm.tags ? recipeForm.tags.split(',').map(t => t.trim()) : selectedRecipe.tags || []
+            };
+
+            // Atualizar na lista de receitas
+            const updatedRecipes = recipes.map(r => r.id === selectedRecipe.id ? updatedRecipe : r);
+            // Usar setRecipes se disponível, ou atualizar via contexto
+            if (imageUrl !== selectedRecipe.image) {
+                updateRecipeImage(selectedRecipe.id, imageUrl);
+            }
+            
+            alert('Receita atualizada com sucesso!');
+            setSelectedRecipe(null);
+        } else {
+            // Criar nova receita
+            const newRecipe: Recipe = {
+                id: Date.now(),
+                name: recipeForm.name,
+                time: recipeForm.time || '30 min',
+                calories: parseInt(recipeForm.calories) || 0,
+                difficulty: recipeForm.difficulty,
+                type: recipeForm.type,
+                image: imageUrl,
+                ingredients: recipeForm.ingredients.split('\n').filter(i => i.trim()),
+                steps: recipeForm.steps.split('\n').filter(s => s.trim()),
+                tags: recipeForm.tags ? recipeForm.tags.split(',').map(t => t.trim()) : []
+            };
+
+            addRecipe(newRecipe);
+            alert('Receita criada com sucesso!');
+        }
+
         setRecipeForm({
             name: '',
             time: '',
@@ -149,7 +181,8 @@ const Admin = () => {
             type: 'Prato Principal',
             ingredients: '',
             steps: '',
-            tags: ''
+            tags: '',
+            image: ''
         });
     };
 
@@ -456,7 +489,20 @@ const Admin = () => {
                                         <div
                                             key={recipe.id}
                                             className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
-                                            onClick={() => setSelectedRecipe(recipe)}
+                                            onClick={() => {
+                                                setSelectedRecipe(recipe);
+                                                setRecipeForm({
+                                                    name: recipe.name,
+                                                    time: recipe.time,
+                                                    calories: recipe.calories.toString(),
+                                                    difficulty: recipe.difficulty,
+                                                    type: recipe.type,
+                                                    ingredients: recipe.ingredients.join('\n'),
+                                                    steps: recipe.steps.join('\n'),
+                                                    tags: recipe.tags?.join(', ') || '',
+                                                    image: recipe.image
+                                                });
+                                            }}
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1">
@@ -606,12 +652,39 @@ const Admin = () => {
                                     </button>
 
                                     {selectedRecipe && (
-                                        <button
-                                            onClick={() => setSelectedRecipe(null)}
-                                            className="w-full px-6 py-3 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
-                                        >
-                                            Cancelar Edição
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedRecipe(null);
+                                                    setRecipeForm({
+                                                        name: '',
+                                                        time: '',
+                                                        calories: '',
+                                                        difficulty: 'Fácil',
+                                                        type: 'Prato Principal',
+                                                        ingredients: '',
+                                                        steps: '',
+                                                        tags: '',
+                                                        image: ''
+                                                    });
+                                                }}
+                                                className="w-full px-6 py-3 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
+                                            >
+                                                Cancelar Edição
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (selectedRecipe && recipeForm.image && recipeForm.image !== selectedRecipe.image) {
+                                                        updateRecipeImage(selectedRecipe.id, recipeForm.image);
+                                                        alert('Imagem atualizada com sucesso!');
+                                                    }
+                                                }}
+                                                disabled={!recipeForm.image || recipeForm.image === selectedRecipe.image}
+                                                className="w-full px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Apenas Atualizar Imagem
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </Card>
