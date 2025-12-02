@@ -6,6 +6,8 @@ import Card from '../components/Card';
 import { useI18n } from '../contexts/I18nContext';
 import { useUserData } from '../contexts/UserDataContext';
 import type { Recipe } from '../types';
+import { generateImageForRecipe } from '../services/geminiService';
+import { getRecipeImageUrl } from '../utils/imageHelper';
 
 interface UserStats {
     id: string;
@@ -28,12 +30,13 @@ interface SystemStats {
 
 const Admin = () => {
     const { user, isAdmin } = useAuth();
-    const { recipes, updateRecipeImage, addRecipe } = useUserData();
-    const { t } = useI18n();
+    const { recipes, updateRecipeImage, addRecipe, setRecipes } = useUserData();
+    const { t, language } = useI18n();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'users' | 'recipes' | 'stats' | 'settings'>('users');
     const [users, setUsers] = useState<UserStats[]>([]);
     const [loading, setLoading] = useState(false);
+    const [generatingImage, setGeneratingImage] = useState<number | null>(null);
     const [stats, setStats] = useState<SystemStats>({
         total_users: 0,
         active_users: 0,
@@ -188,9 +191,78 @@ const Admin = () => {
 
     const handleDeleteRecipe = (recipeId: number) => {
         if (confirm('Tem certeza que deseja deletar esta receita?')) {
-            // Implementar deleção de receita
-            alert('Funcionalidade de deleção será implementada');
+            setRecipes(recipes.filter(r => r.id !== recipeId));
+            if (selectedRecipe?.id === recipeId) {
+                setSelectedRecipe(null);
+                setRecipeForm({
+                    name: '', time: '', calories: '', difficulty: 'Fácil', type: 'Prato Principal', ingredients: '', steps: '', tags: '', image: ''
+                });
+            }
+            alert('Receita deletada com sucesso!');
         }
+    };
+
+    const handleGenerateImage = async (recipe: Recipe) => {
+        if (generatingImage === recipe.id) return; // Evitar múltiplas chamadas
+        
+        setGeneratingImage(recipe.id);
+        try {
+            // Criar uma query descritiva para a imagem baseada na receita
+            const imageQuery = `${recipe.name} ${recipe.type} ${recipe.ingredients.slice(0, 3).join(' ')} food photography professional`;
+            
+            const imageUrl = await generateImageForRecipe(imageQuery);
+            
+            if (imageUrl) {
+                updateRecipeImage(recipe.id, imageUrl);
+                // Atualizar também o form se a receita estiver selecionada
+                if (selectedRecipe?.id === recipe.id) {
+                    setRecipeForm({ ...recipeForm, image: imageUrl });
+                    setSelectedRecipe({ ...selectedRecipe, image: imageUrl });
+                }
+                alert('Imagem gerada com sucesso!');
+            } else {
+                throw new Error('Não foi possível gerar a imagem');
+            }
+        } catch (error: any) {
+            console.error('Erro ao gerar imagem:', error);
+            alert('Erro ao gerar imagem: ' + (error.message || 'Erro desconhecido'));
+        } finally {
+            setGeneratingImage(null);
+        }
+    };
+
+    const handleGenerateAllImages = async () => {
+        if (!confirm(`Tem certeza que deseja gerar imagens para todas as ${recipes.length} receitas? Isso pode levar alguns minutos.`)) {
+            return;
+        }
+
+        setGeneratingImage(-1); // -1 significa "gerando todas"
+        
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const recipe of recipes) {
+            try {
+                const imageQuery = `${recipe.name} ${recipe.type} ${recipe.ingredients.slice(0, 3).join(' ')} food photography professional`;
+                const imageUrl = await generateImageForRecipe(imageQuery);
+                
+                if (imageUrl) {
+                    updateRecipeImage(recipe.id, imageUrl);
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+                
+                // Pequeno delay para não sobrecarregar a API
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (error) {
+                console.error(`Erro ao gerar imagem para ${recipe.name}:`, error);
+                errorCount++;
+            }
+        }
+
+        setGeneratingImage(null);
+        alert(`Geração concluída! ${successCount} sucesso, ${errorCount} erros.`);
     };
 
     const handleBanUser = async (userId: string) => {
@@ -483,12 +555,22 @@ const Admin = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Lista de Receitas */}
                             <Card className="p-6">
-                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Todas as Receitas</h2>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-800">Todas as Receitas</h2>
+                                    <button
+                                        onClick={handleGenerateAllImages}
+                                        disabled={generatingImage === -1 || recipes.length === 0}
+                                        className="px-3 py-1.5 bg-purple-500 text-white text-sm rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Gerar imagens para todas as receitas"
+                                    >
+                                        {generatingImage === -1 ? 'Gerando...' : 'Gerar Todas as Imagens'}
+                                    </button>
+                                </div>
                                 <div className="space-y-3 max-h-96 overflow-y-auto">
                                     {recipes.map((recipe) => (
                                         <div
                                             key={recipe.id}
-                                            className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
+                                            className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-all"
                                             onClick={() => {
                                                 setSelectedRecipe(recipe);
                                                 setRecipeForm({
@@ -504,21 +586,51 @@ const Admin = () => {
                                                 });
                                             }}
                                         >
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <p className="font-semibold text-gray-800">{recipe.name}</p>
+                                            <div className="flex gap-3">
+                                                {/* Imagem da Receita */}
+                                                <div className="flex-shrink-0">
+                                                    <img
+                                                        src={recipe.image || getRecipeImageUrl(recipe.name, recipe.type)}
+                                                        alt={recipe.name}
+                                                        className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.src = getRecipeImageUrl(recipe.name, recipe.type);
+                                                        }}
+                                                    />
+                                                </div>
+                                                
+                                                {/* Informações da Receita */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-gray-800 truncate">{recipe.name}</p>
                                                     <p className="text-sm text-gray-500">{recipe.type}</p>
                                                     <p className="text-xs text-gray-400">{recipe.calories} kcal</p>
+                                                    
+                                                    {/* Botões de Ação */}
+                                                    <div className="flex gap-2 mt-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleGenerateImage(recipe);
+                                                            }}
+                                                            disabled={generatingImage === recipe.id || generatingImage === -1}
+                                                            className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            title="Gerar imagem para esta receita"
+                                                        >
+                                                            {generatingImage === recipe.id ? 'Gerando...' : '🖼️ Gerar Imagem'}
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteRecipe(recipe.id);
+                                                            }}
+                                                            className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
+                                                            title="Deletar receita"
+                                                        >
+                                                            🗑️ Deletar
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteRecipe(recipe.id);
-                                                    }}
-                                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-                                                >
-                                                    Deletar
-                                                </button>
                                             </div>
                                         </div>
                                     ))}

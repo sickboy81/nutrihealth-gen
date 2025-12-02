@@ -147,8 +147,8 @@ BEGIN
   RETURN QUERY
   SELECT 
     u.id,
-    u.email,
-    COALESCE(u.raw_user_meta_data->>'name', u.email) as name,
+    u.email::TEXT,  -- Cast para TEXT para compatibilidade
+    COALESCE(u.raw_user_meta_data->>'name', u.email)::TEXT as name,
     u.created_at,
     u.last_sign_in_at,
     COALESCE(bu.id IS NOT NULL, false) as is_banned,

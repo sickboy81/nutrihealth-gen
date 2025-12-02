@@ -811,8 +811,8 @@ const Dashboard = () => {
                 {/* Charts & Info - Spans 3 Cols */}
                 <Card className="p-4 lg:col-span-3">
                     <h2 className="text-xl font-bold mb-4 text-gray-800">{t('dashboard.calorieHistory')}</h2>
-                    <div className="h-64 min-h-[256px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" minHeight={256}>
+                    <div className="w-full" style={{ minHeight: '256px', height: '256px' }}>
+                        <ResponsiveContainer width="100%" height={256}>
                             <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                 <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} stroke="#d1d5db" />

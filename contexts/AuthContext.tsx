@@ -31,59 +31,26 @@ const ADMIN_EMAILS = [
 
 const getUserRole = async (userId: string): Promise<UserRole> => {
     try {
-        // Prioridade 1: Verificar na tabela admin_users do Supabase (se existir)
+        // Prioridade 1: Usar a função RPC is_admin (evita problemas de RLS)
         try {
-            const { data: adminData, error: adminError } = await supabase
-                .from('admin_users')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('is_active', true)
-                .maybeSingle(); // Use maybeSingle para não dar erro se não encontrar
+            const timeoutPromise = new Promise<{ data: null, error: { status: number } }>((resolve) => {
+                setTimeout(() => resolve({ data: null, error: { status: 500 } }), 2000);
+            });
 
-            // Se não houver erro e encontrar dados, é admin
-            if (!adminError && adminData) {
+            const rpcPromise = supabase.rpc('is_admin', { user_uuid: userId });
+
+            const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
+            const { data: isAdminResult, error: rpcError } = result;
+
+            // Se a função retornar true, é admin
+            if (!rpcError && isAdminResult === true) {
                 return 'admin';
             }
 
-            // Se houver erro 500 ou 404, a tabela provavelmente não existe ou há problema de permissão
-            // Ignora silenciosamente e continua com outros métodos
-            if (adminError) {
-                const errorCode = adminError.code || '';
-                const errorMessage = adminError.message || '';
-                
-                // Ignora erros de tabela não encontrada ou problemas de permissão
-                if (
-                    errorCode === 'PGRST116' || // Table not found
-                    errorCode === '42P01' || // relation does not exist
-                    errorMessage.includes('does not exist') ||
-                    errorMessage.includes('relation') ||
-                    errorMessage.includes('permission denied') ||
-                    adminError.status === 500 || // Internal server error (pode ser RLS ou tabela não existe)
-                    adminError.status === 404
-                ) {
-                    // Tabela não existe ou problema de permissão - ignora e usa fallback
-                    // Não loga para não poluir o console
-                } else {
-                    // Outro tipo de erro - loga apenas em desenvolvimento
-                    if (!import.meta.env.PROD) {
-                        console.warn('Error checking admin_users table:', adminError);
-                    }
-                }
-            }
-        } catch (tableError: any) {
-            // Se a tabela não existir ou houver qualquer erro, ignora e continua
-            // Não loga erro para não poluir o console
-            const errorMessage = tableError?.message || '';
-            if (
-                !errorMessage.includes('does not exist') && 
-                !errorMessage.includes('relation') &&
-                !errorMessage.includes('permission denied')
-            ) {
-                // Apenas loga em desenvolvimento se for um erro inesperado
-                if (!import.meta.env.PROD) {
-                    console.warn('Unexpected error checking admin_users:', tableError);
-                }
-            }
+            // Se a função não existir ou der erro, ignora silenciosamente
+            // Não tenta acesso direto à tabela para evitar erro 500
+        } catch (rpcError: any) {
+            // Ignora erros completamente - não loga nada
         }
 
         // Prioridade 2: Verificar nos metadados do usuário
