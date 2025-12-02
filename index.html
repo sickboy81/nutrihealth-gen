@@ -96,47 +96,6 @@
 
 <body class="bg-gray-50">
   <div id="root"></div>
-  <!-- Disable React DevTools BEFORE any React code runs -->
-  <script>
-    // This must run before any React code to prevent DevTools initialization errors
-    (function() {
-      window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-        isDisabled: true,
-        supportsFiber: true,
-        supportsFlight: true,
-        supportsStrictMode: true,
-        supportsTimeline: true,
-        inject: function() {},
-        onCommitFiberRoot: function() {},
-        onCommitFiberUnmount: function() {},
-        onPostCommitFiberRoot: function() {},
-        setStrictMode: function() {},
-        checkDCE: function() {},
-        resolveRNStyle: function() {},
-        getInternalModuleRanges: function() { return null; },
-        registerInternalModuleStart: function() {},
-        registerInternalModuleStop: function() {}
-      };
-      
-      // Suppress errors
-      var origError = console.error;
-      console.error = function() {
-        var msg = arguments[0] ? String(arguments[0]) : '';
-        if (msg.indexOf('Activity') !== -1 || msg.indexOf('DevTools') !== -1 || msg.indexOf('undefined') !== -1) return;
-        origError.apply(console, arguments);
-      };
-      
-      // Catch uncaught errors
-      window.addEventListener('error', function(e) {
-        var msg = e.message || '';
-        if (msg.indexOf('Activity') !== -1 || msg.indexOf('undefined') !== -1) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      }, true);
-    })();
-  </script>
   <script type="module" src="/index.tsx"></script>
 </body>
 
