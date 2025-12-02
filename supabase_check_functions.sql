@@ -3,7 +3,7 @@
 -- Execute este script no SQL Editor do Supabase
 -- ============================================
 
--- 1. Verificar se a função get_all_users existe
+-- Verificar se a função get_all_users existe
 SELECT 
     p.proname as function_name,
     pg_get_function_result(p.oid) as return_type,
@@ -17,7 +17,7 @@ JOIN pg_namespace n ON p.pronamespace = n.oid
 WHERE n.nspname = 'public'
 AND p.proname = 'get_all_users';
 
--- 2. Verificar TODAS as funções administrativas criadas
+-- Verificar TODAS as funções administrativas criadas
 SELECT 
     p.proname as function_name,
     pg_get_function_result(p.oid) as return_type,
@@ -40,7 +40,7 @@ AND p.proname IN (
 )
 ORDER BY p.proname;
 
--- 3. Verificar se as tabelas administrativas existem
+-- Verificar se as tabelas administrativas existem
 SELECT 
     table_name,
     CASE 
@@ -52,7 +52,7 @@ WHERE table_schema = 'public'
 AND table_name IN ('admin_users', 'banned_users', 'admin_logs')
 ORDER BY table_name;
 
--- 4. Verificar políticas RLS das tabelas administrativas
+-- Verificar políticas RLS das tabelas administrativas
 SELECT 
     schemaname,
     tablename,
@@ -67,7 +67,7 @@ WHERE schemaname = 'public'
 AND tablename IN ('admin_users', 'banned_users', 'admin_logs')
 ORDER BY tablename, policyname;
 
--- 5. Verificar se RLS está habilitado nas tabelas
+-- Verificar se RLS está habilitado nas tabelas
 SELECT 
     schemaname,
     tablename,
@@ -81,7 +81,7 @@ ORDER BY tablename;
 -- IMPORTANTE: Execute apenas se você for admin!
 -- SELECT * FROM get_all_users();
 
--- 7. Verificar estrutura completa da função get_all_users
+-- Verificar estrutura completa da função get_all_users
 SELECT 
     p.proname as function_name,
     pg_get_functiondef(p.oid) as function_definition
