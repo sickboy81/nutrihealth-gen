@@ -218,6 +218,7 @@ const Login = () => {
                                     <input
                                         type="text"
                                         required
+                                        autoComplete="name"
                                         className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -229,6 +230,7 @@ const Login = () => {
                                 <input
                                     type="email"
                                     required
+                                    autoComplete="email"
                                     className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -240,6 +242,7 @@ const Login = () => {
                                     type="password"
                                     required
                                     minLength={6}
+                                    autoComplete={isLogin ? "current-password" : "new-password"}
                                     className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -253,6 +256,7 @@ const Login = () => {
                                         type="password"
                                         required
                                         minLength={6}
+                                        autoComplete="new-password"
                                         className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                                         value={formData.confirmPassword}
                                         onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
