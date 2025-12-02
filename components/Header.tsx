@@ -13,7 +13,7 @@ const Header = () => {
     const navigate = useNavigate();
     const { t } = useI18n();
     const { assistantName } = useUserData();
-    const { logout, user } = useAuth();
+    const { logout, user, isAdmin } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +33,8 @@ const Header = () => {
                 return 'Perfil';
             case '/about':
                 return 'Sobre';
+            case '/admin':
+                return 'Admin';
             case '/chat':
                 return t('header.chat', { name: assistantName });
             default:
@@ -63,7 +65,7 @@ const Header = () => {
         };
     }, [menuOpen]);
 
-    const isSettingsPage = location.pathname === '/settings' || location.pathname === '/profile' || location.pathname === '/about';
+    const isSettingsPage = location.pathname === '/settings' || location.pathname === '/profile' || location.pathname === '/about' || location.pathname === '/admin';
 
     return (
         <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-100 z-40 h-16">
@@ -133,6 +135,21 @@ const Header = () => {
                                                 <span className="text-xs text-gray-500">Informações do app</span>
                                             </div>
                                         </Link>
+                                        {isAdmin && (
+                                            <Link
+                                                to="/admin"
+                                                onClick={() => setMenuOpen(false)}
+                                                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 rounded-xl transition-all duration-200 group"
+                                            >
+                                                <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
+                                                    <span className="text-lg">🛡️</span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <span className="font-semibold text-gray-900 block">Admin</span>
+                                                    <span className="text-xs text-gray-500">Painel administrativo</span>
+                                                </div>
+                                            </Link>
+                                        )}
                                     </div>
                                     <div className="border-t border-gray-100 my-2"></div>
                                     <div className="px-2">

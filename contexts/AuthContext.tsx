@@ -2,15 +2,19 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+export type UserRole = 'user' | 'admin';
+
 interface User {
     id: string;
     name: string;
     email: string;
+    role?: UserRole;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
+    isAdmin: boolean;
     login: (email: string, password: string) => Promise<string | null>;
     register: (name: string, email: string, password: string) => Promise<string | null>;
     logout: () => Promise<void>;
@@ -18,33 +22,70 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Lista de emails admin (pode ser movido para variável de ambiente ou banco de dados)
+const ADMIN_EMAILS = [
+    'admin@nutrihealth.com',
+    'sickboy81@gmail.com' // Adicione seu email aqui
+];
+
+const getUserRole = async (userId: string): Promise<UserRole> => {
+    try {
+        // Verificar no Supabase se o usuário tem role admin nos metadados
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            // Verificar nos metadados do usuário
+            if (user.user_metadata?.role === 'admin') {
+                return 'admin';
+            }
+            // Verificar se o email está na lista de admins
+            if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+                return 'admin';
+            }
+        }
+        return 'user';
+    } catch (error) {
+        console.error('Error getting user role:', error);
+        return 'user';
+    }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session?.user) {
-                setUser({
+                const role = await getUserRole(session.user.id);
+                const userData = {
                     id: session.user.id,
                     email: session.user.email!,
-                    name: session.user.user_metadata?.name || session.user.email!.split('@')[0]
-                });
+                    name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
+                    role
+                };
+                setUser(userData);
+                setIsAdmin(role === 'admin');
             }
             setLoading(false);
         });
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
-                setUser({
+                const role = await getUserRole(session.user.id);
+                const userData = {
                     id: session.user.id,
                     email: session.user.email!,
-                    name: session.user.user_metadata?.name || session.user.email!.split('@')[0]
-                });
+                    name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
+                    role
+                };
+                setUser(userData);
+                setIsAdmin(role === 'admin');
             } else {
                 setUser(null);
+                setIsAdmin(false);
             }
         });
 
@@ -61,11 +102,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (error) return error.message;
 
             if (data.user) {
-                setUser({
+                const role = await getUserRole(data.user.id);
+                const userData = {
                     id: data.user.id,
                     email: data.user.email!,
-                    name: data.user.user_metadata?.name || data.user.email!.split('@')[0]
-                });
+                    name: data.user.user_metadata?.name || data.user.email!.split('@')[0],
+                    role
+                };
+                setUser(userData);
+                setIsAdmin(role === 'admin');
             }
 
             return null;
@@ -109,7 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, isAdmin, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );

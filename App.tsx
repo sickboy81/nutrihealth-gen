@@ -22,6 +22,7 @@ import About from './pages/About';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Contact from './pages/Contact';
+import Admin from './pages/Admin';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -41,6 +42,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAdmin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Spinner className="w-8 h-8 text-emerald-600" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const AppContent = () => {
   const { user } = useAuth();
   const location = useLocation();
@@ -48,8 +71,8 @@ const AppContent = () => {
   // Hide header/bottom nav on landing page, login, onboarding, and public pages
   const hideNav = ['/', '/login', '/onboarding', '/terms', '/privacy', '/contact'].includes(location.pathname);
   
-  // Hide bottom nav on settings pages and public pages
-  const hideBottomNav = ['/settings', '/profile', '/about', '/terms', '/privacy', '/contact'].includes(location.pathname);
+  // Hide bottom nav on settings pages, admin, and public pages
+  const hideBottomNav = ['/settings', '/profile', '/about', '/admin', '/terms', '/privacy', '/contact'].includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -67,6 +90,7 @@ const AppContent = () => {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
