@@ -326,30 +326,15 @@ export const generateRecipeFromIngredients = async (ingredients: string, languag
 };
 
 export const generateImageForRecipe = async (imageQuery: string): Promise<string> => {
-    let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'; // Fallback
-    try {
-        if (!apiKey || !ai) {
-            console.warn('API Key não configurada, usando imagem padrão');
-            return imageUrl;
-        }
-        
-        const imageResponse = await ai.models.generateImages({
-            model: 'imagen-3.0-generate-001',
-            prompt: imageQuery,
-            config: {
-                numberOfImages: 1,
-                aspectRatio: '4:3',
-                outputMimeType: 'image/jpeg'
-            }
-        });
-        
-        if (imageResponse.generatedImages && imageResponse.generatedImages.length > 0) {
-            const base64Image = imageResponse.generatedImages[0].image.imageBytes;
-            imageUrl = `data:image/jpeg;base64,${base64Image}`;
-        }
-    } catch (imageError) {
-        console.error("Failed to generate image with Imagen, using fallback.", imageError);
+    // Imagen API is not available, always use fallback
+    // The model 'imagen-3.0-generate-001' is not available in the current API
+    const imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop';
+    
+    // Only log in development
+    if (import.meta.env.DEV) {
+        console.log('Using fallback image for recipe:', imageQuery);
     }
+    
     return imageUrl;
 }
 

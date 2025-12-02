@@ -403,8 +403,8 @@ const Settings = () => {
                                 <ChartLineIcon className="w-6 h-6 text-emerald-600" />
                                 {t('settings.weightChart')}
                             </h3>
-                            <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
+                            <div className="h-64 min-h-[256px] w-full">
+                                <ResponsiveContainer width="100%" height="100%" minHeight={256}>
                                     <LineChart data={weightHistory} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                         <XAxis 
