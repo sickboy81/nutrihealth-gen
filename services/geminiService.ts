@@ -363,22 +363,124 @@ export const sendNutritionChatMessage = async (history: {role: 'user' | 'model',
     return result.text;
 };
 
-export const generateShoppingListFromPlan = async (plan: WeeklyPlan, language: string): Promise<ShoppingItem[]> => {
-    checkApiKey();
+// Helper function to consolidate ingredients locally (fast)
+const consolidateIngredients = (ingredients: string[]): string[] => {
+    const consolidated: { [key: string]: { name: string; quantities: number[] } } = {};
     
-    const languageName = languageMap[language as keyof typeof languageMap] || 'English';
-     // Extract all ingredients string
-     const allIngredients: string[] = [];
-     Object.values(plan).forEach(day => {
-         day.breakfast.ingredients.forEach(i => allIngredients.push(i));
-         day.lunch.ingredients.forEach(i => allIngredients.push(i));
-         day.dinner.ingredients.forEach(i => allIngredients.push(i));
-     });
+    ingredients.forEach(ing => {
+        // Extract quantity and name from ingredient string
+        const match = ing.match(/^(\d+(?:\.\d+)?)\s*(.+)$/);
+        if (match) {
+            const quantity = parseFloat(match[1]);
+            const name = match[2].trim().toLowerCase();
+            
+            if (!consolidated[name]) {
+                consolidated[name] = { name: match[2].trim(), quantities: [] };
+            }
+            consolidated[name].quantities.push(quantity);
+        } else {
+            // No quantity, just add the name
+            const name = ing.trim().toLowerCase();
+            if (!consolidated[name]) {
+                consolidated[name] = { name: ing.trim(), quantities: [] };
+            }
+            consolidated[name].quantities.push(1);
+        }
+    });
+    
+    // Build consolidated list
+    return Object.values(consolidated).map(item => {
+        const total = item.quantities.reduce((sum, q) => sum + q, 0);
+        if (total > 1 && item.quantities.length > 1) {
+            return `${total} ${item.name}`;
+        }
+        return item.name;
+    });
+};
 
-     const prompt = `Given this list of ingredients from a weekly meal plan, consolidate them into a smart shopping list.
-     Combine similar items and sum up quantities where possible (e.g., "2 tomatoes" and "3 tomatoes" becomes "5 tomatoes").
+// Helper function to categorize ingredients (simple local categorization)
+const categorizeIngredient = (ingredient: string): string => {
+    const ing = ingredient.toLowerCase();
+    
+    // Vegetables
+    if (ing.match(/(tomato|lettuce|onion|garlic|pepper|carrot|broccoli|spinach|zucchini|eggplant|cucumber|celery|mushroom|potato|sweet potato|pumpkin|squash|kale|cabbage|cauliflower|asparagus|green bean|pea|corn)/)) {
+        return 'Vegetables';
+    }
+    
+    // Fruits
+    if (ing.match(/(apple|banana|orange|lemon|lime|berry|strawberry|blueberry|grape|mango|pineapple|avocado|peach|pear|kiwi|watermelon|melon)/)) {
+        return 'Fruits';
+    }
+    
+    // Meat & Protein
+    if (ing.match(/(chicken|beef|pork|turkey|fish|salmon|tuna|shrimp|egg|tofu|tempeh|chickpea|bean|lentil|protein)/)) {
+        return 'Protein';
+    }
+    
+    // Dairy
+    if (ing.match(/(milk|cheese|yogurt|butter|cream|sour cream|cottage cheese|mozzarella|parmesan)/)) {
+        return 'Dairy';
+    }
+    
+    // Grains & Bread
+    if (ing.match(/(rice|pasta|bread|flour|oats|quinoa|couscous|barley|wheat|tortilla|wrap|noodle)/)) {
+        return 'Grains';
+    }
+    
+    // Pantry
+    if (ing.match(/(oil|salt|pepper|spice|herb|sugar|honey|vinegar|soy sauce|sauce|condiment|nut|seed|almond|walnut|peanut)/)) {
+        return 'Pantry';
+    }
+    
+    // Default
+    return 'Other';
+};
+
+export const generateShoppingListFromPlan = async (plan: WeeklyPlan, language: string, day?: keyof WeeklyPlan): Promise<{ items: ShoppingItem[] }> => {
+    // Extract ingredients
+    const allIngredients: string[] = [];
+    
+    if (day) {
+        // Only get ingredients from the selected day
+        const dayPlan = plan[day];
+        if (dayPlan) {
+            dayPlan.breakfast.ingredients.forEach(i => allIngredients.push(i));
+            dayPlan.lunch.ingredients.forEach(i => allIngredients.push(i));
+            dayPlan.dinner.ingredients.forEach(i => allIngredients.push(i));
+        }
+    } else {
+        // Get ingredients from all days (week)
+        Object.values(plan).forEach(dayPlan => {
+            dayPlan.breakfast.ingredients.forEach(i => allIngredients.push(i));
+            dayPlan.lunch.ingredients.forEach(i => allIngredients.push(i));
+            dayPlan.dinner.ingredients.forEach(i => allIngredients.push(i));
+        });
+    }
+    
+    // Consolidate ingredients locally (fast!)
+    const consolidated = consolidateIngredients(allIngredients);
+    
+    // Categorize locally (instant!)
+    const items: ShoppingItem[] = consolidated.map(ing => ({
+        item: ing,
+        category: categorizeIngredient(ing),
+        checked: false
+    }));
+    
+    // If we have API key, use AI only for better categorization (optional enhancement)
+    // But return immediately with local categorization for speed
+    if (items.length > 0) {
+        return { items };
+    }
+    
+    // Fallback: use AI only if local processing fails
+    checkApiKey();
+    const languageName = languageMap[language as keyof typeof languageMap] || 'English';
+    const scopeText = day ? `a single day (${day})` : 'the entire week';
+    const prompt = `Given this list of ingredients from ${scopeText} of a meal plan, consolidate them into a smart shopping list.
+     Combine similar items and sum up quantities where possible.
      Categorize each item (e.g., "Vegetables", "Meat", "Dairy", "Pantry", "Fruit").
-     The input list is: ${JSON.stringify(allIngredients.slice(0, 500))} (truncated for brevity if too long).
+     The input list is: ${JSON.stringify(allIngredients.slice(0, 200))}.
      
      Return a JSON array of objects with "item" (string, name + quantity) and "category" (string).
      The language of the output must be ${languageName}.
@@ -391,7 +493,7 @@ export const generateShoppingListFromPlan = async (plan: WeeklyPlan, language: s
         ]
      }`;
 
-     const response = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
@@ -413,10 +515,10 @@ export const generateShoppingListFromPlan = async (plan: WeeklyPlan, language: s
                 }
             }
         }
-     });
+    });
 
-     const json = JSON.parse(response.text.trim());
-     return json.items.map((i: any) => ({ ...i, checked: false }));
+    const json = JSON.parse(response.text.trim());
+    return { items: json.items.map((i: any) => ({ ...i, checked: false })) };
 };
 
 export const generate30DayChallenge = async (goal: string, language: string): Promise<ChallengeTask[]> => {

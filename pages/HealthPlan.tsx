@@ -57,28 +57,30 @@ import { jsPDF } from 'jspdf';
 import { ShareIcon } from '../components/icons/ShareIcon';
 import { DownloadIcon } from '../components/icons/DownloadIcon';
 
-const ShoppingListModal = ({ onClose }: { onClose: () => void }) => {
+const ShoppingListModal = ({ onClose, selectedDay }: { onClose: () => void; selectedDay?: keyof WeeklyPlan }) => {
     const { t, language } = useI18n();
     const { lastGeneratedPlan, shoppingList, setShoppingList, toggleShoppingItem } = useUserData();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [scope, setScope] = useState<'day' | 'week'>('week');
+    const [hasGenerated, setHasGenerated] = useState(false);
 
-    useEffect(() => {
-        if (!shoppingList && lastGeneratedPlan) {
-            const generate = async () => {
-                setIsLoading(true);
-                try {
-                    const list = await generateShoppingListFromPlan(lastGeneratedPlan, language);
-                    setShoppingList(list);
-                } catch (err) {
-                    setError(t('healthPlan.shoppingList.generateError'));
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            generate();
+    const handleGenerate = async () => {
+        if (!lastGeneratedPlan) return;
+        
+        setIsLoading(true);
+        setError(null);
+        try {
+            const dayToUse = scope === 'day' && selectedDay ? selectedDay : undefined;
+            const result = await generateShoppingListFromPlan(lastGeneratedPlan, language, dayToUse);
+            setShoppingList(result.items);
+            setHasGenerated(true);
+        } catch (err) {
+            setError(t('healthPlan.shoppingList.generateError'));
+        } finally {
+            setIsLoading(false);
         }
-    }, [shoppingList, lastGeneratedPlan, language, setShoppingList, t]);
+    };
 
     const groupedItems = useMemo(() => {
         if (!shoppingList) return {} as Record<string, (ShoppingItem & { originalIndex: number })[]>;
@@ -150,6 +152,53 @@ const ShoppingListModal = ({ onClose }: { onClose: () => void }) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
+                    {!hasGenerated && !isLoading && (
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('healthPlan.shoppingList.scopeTitle')}</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => setScope('day')}
+                                        disabled={!selectedDay}
+                                        className={`p-4 rounded-xl border-2 transition-all ${
+                                            scope === 'day'
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                        } ${!selectedDay ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        <div className="font-bold text-base mb-1">{t('healthPlan.shoppingList.day')}</div>
+                                        <div className="text-xs">{selectedDay ? t(`healthPlan.days.${selectedDay}`) : t('healthPlan.shoppingList.selectDay')}</div>
+                                    </button>
+                                    <button
+                                        onClick={() => setScope('week')}
+                                        className={`p-4 rounded-xl border-2 transition-all ${
+                                            scope === 'week'
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <div className="font-bold text-base mb-1">{t('healthPlan.shoppingList.week')}</div>
+                                        <div className="text-xs">{t('healthPlan.shoppingList.allDays')}</div>
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleGenerate}
+                                disabled={isLoading || (scope === 'day' && !selectedDay)}
+                                className="w-full py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Spinner className="w-5 h-5 mr-2" />
+                                        {t('healthPlan.shoppingList.generating')}
+                                    </>
+                                ) : (
+                                    t('healthPlan.shoppingList.generateButton')
+                                )}
+                            </button>
+                        </div>
+                    )}
+
                     {isLoading && (
                         <div className="flex flex-col items-center justify-center h-40">
                             <Spinner />
@@ -159,7 +208,7 @@ const ShoppingListModal = ({ onClose }: { onClose: () => void }) => {
 
                     {error && <p className="text-red-500 text-center">{error}</p>}
 
-                    {!isLoading && !error && shoppingList && (
+                    {!isLoading && !error && shoppingList && hasGenerated && (
                         <div className="space-y-6">
                             {Object.entries(groupedItems).map(([category, items]: [string, (ShoppingItem & { originalIndex: number })[]]) => (
                                 <div key={category}>
@@ -188,7 +237,7 @@ const ShoppingListModal = ({ onClose }: { onClose: () => void }) => {
                     )}
                 </div>
 
-                {!isLoading && shoppingList && (
+                {!isLoading && shoppingList && hasGenerated && (
                     <div className="p-4 border-t border-gray-100 flex gap-3">
                         <button
                             onClick={exportToWhatsApp}
@@ -541,7 +590,7 @@ const HealthPlan = () => {
             )}
 
             {selectedMeal && <RecipeModal meal={selectedMeal.meal} mealType={selectedMeal.type} onClose={() => setSelectedMeal(null)} />}
-            {showShoppingList && <ShoppingListModal onClose={() => setShowShoppingList(false)} />}
+            {showShoppingList && <ShoppingListModal onClose={() => setShowShoppingList(false)} selectedDay={selectedDay} />}
         </div>
     );
 };

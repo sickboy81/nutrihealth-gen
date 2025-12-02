@@ -266,7 +266,13 @@ const translations = {
           title: "Lista de Compras",
           generating: "Gerando lista...",
           generateError: "Erro ao gerar lista.",
-          empty: "Gere um plano primeiro para criar a lista."
+          empty: "Gere um plano primeiro para criar a lista.",
+          scopeTitle: "Escolha o escopo da lista:",
+          day: "Dia",
+          week: "Semana",
+          allDays: "Todos os dias",
+          selectDay: "Selecione um dia",
+          generateButton: "Gerar Lista"
       }
     },
     settings: {
@@ -699,7 +705,13 @@ const translations = {
           title: "Shopping List",
           generating: "Generating list...",
           generateError: "Error generating list.",
-          empty: "Generate a plan first to create the list."
+          empty: "Generate a plan first to create the list.",
+          scopeTitle: "Choose list scope:",
+          day: "Day",
+          week: "Week",
+          allDays: "All days",
+          selectDay: "Select a day",
+          generateButton: "Generate List"
       }
     },
     settings: {
