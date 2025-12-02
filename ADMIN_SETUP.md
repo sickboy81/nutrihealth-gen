@@ -28,20 +28,35 @@ Este guia explica como configurar e usar o sistema administrativo completo do Nu
 
 Após executar o script SQL, você precisa adicionar manualmente o primeiro administrador.
 
-### Opção A: Via SQL Editor
+### Opção A: Via SQL Editor (RECOMENDADO)
 
+**IMPORTANTE:** Você precisa encontrar o UUID real do usuário primeiro!
+
+1. **Encontre o UUID do usuário:**
 ```sql
--- Substitua 'SEU_USER_ID_AQUI' pelo UUID do usuário que você quer tornar admin
--- Você pode encontrar o UUID em Authentication > Users no Supabase Dashboard
+SELECT 
+    id as user_id,
+    email,
+    created_at,
+    raw_user_meta_data->>'name' as name
+FROM auth.users 
+WHERE email = 'ngfilho@gmail.com';  -- Substitua pelo email
+```
 
+2. **Copie o UUID retornado** (exemplo: `f89cb4bc-e017-489b-b50e-7b27a6ff5804`)
+
+3. **Adicione o admin usando o UUID real:**
+```sql
 INSERT INTO admin_users (user_id, email, created_by, notes)
 VALUES (
-  'SEU_USER_ID_AQUI',
-  'seu-email@exemplo.com',
-  'SEU_USER_ID_AQUI',
+  'f89cb4bc-e017-489b-b50e-7b27a6ff5804',  -- UUID encontrado acima (SUBSTITUA!)
+  'ngfilho@gmail.com',                      -- Email do usuário
+  'f89cb4bc-e017-489b-b50e-7b27a6ff5804',  -- Mesmo UUID aqui
   'Admin inicial'
 );
 ```
+
+**OU use o arquivo `supabase_add_admin.sql` que contém queries prontas!**
 
 ### Opção B: Via Código (Fallback)
 

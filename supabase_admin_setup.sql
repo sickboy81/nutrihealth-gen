@@ -336,14 +336,30 @@ CREATE INDEX IF NOT EXISTS idx_admin_logs_created_at ON admin_logs(created_at);
 -- INSTRUÇÕES DE USO:
 -- ============================================
 -- 1. Execute este script completo no SQL Editor do Supabase
--- 2. Após executar, você precisará adicionar manualmente o primeiro admin:
+-- 
+-- 2. Para encontrar o UUID do usuário pelo email, execute:
+--    SELECT id, email, created_at 
+--    FROM auth.users 
+--    WHERE email = 'seu-email@exemplo.com';
+--
+-- 3. Após encontrar o UUID, adicione o primeiro admin:
 --    INSERT INTO admin_users (user_id, email, created_by, notes)
 --    VALUES (
---      'UUID_DO_USUARIO_AQUI',
---      'email@exemplo.com',
---      'UUID_DO_USUARIO_AQUI',
+--      'UUID_ENCONTRADO_ACIMA',  -- Substitua pelo UUID real!
+--      'seu-email@exemplo.com',
+--      'UUID_ENCONTRADO_ACIMA',  -- Mesmo UUID aqui
 --      'Admin inicial'
 --    );
--- 3. Ou use a função add_admin após fazer login como admin via email
+--
+-- 4. EXEMPLO REAL (substitua pelo seu UUID):
+--    INSERT INTO admin_users (user_id, email, created_by, notes)
+--    VALUES (
+--      'f89cb4bc-e017-489b-b50e-7b27a6ff5804',
+--      'ngfilho@gmail.com',
+--      'f89cb4bc-e017-489b-b50e-7b27a6ff5804',
+--      'Admin inicial'
+--    );
+--
+-- 5. Ou use a função add_admin após fazer login como admin via email
 -- ============================================
 
